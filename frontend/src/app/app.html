@@ -1,0 +1,193 @@
+<div class="dashboard-wrapper">
+  <header class="top-bar">
+    <div class="logo">Artificial Intelligence Based Robotic Spectral Monitoring for Rapid Water Quality Disaster Assessment</div>
+    <div class="status-indicators">
+      <span class="status-tag active">● Edge: Connected</span>
+      <span class="status-tag" [ngClass]="llmReady ? 'active' : 'standby'">
+        ● LLM: {{ llmReady ? 'Ready' : 'Loading' }}
+      </span>
+    </div>
+  </header>
+
+  <div class="main-layout">
+    <section class="monitor-panel">
+      <div class="card monitor-main-card">
+        <div class="card-header">
+          <div class="header-left">
+            <div class="mode-tabs">
+              <button [class.active]="displayMode === 'video'" (click)="displayMode = 'video'; retryStream()">1. Live Video</button>
+              <button [class.active]="displayMode === 'spectrum'" (click)="displayMode = 'spectrum'">2. Spectrum Data</button>
+              <button [class.active]="displayMode === 'history'" (click)="displayMode = 'history'">3. Monitor Log</button>
+            </div>
+            <div class="sub-mode-tabs" *ngIf="displayMode === 'spectrum'">
+              <button [class.active]="subDisplayMode === 'bmp'" (click)="setSubMode('bmp')">BMP Image</button>
+              <button [class.active]="subDisplayMode === 'txt'" (click)="setSubMode('txt')">TXT Waveform</button>
+            </div>
+          </div>
+          <div class="header-actions">
+            <select (change)="onDataChange($event)" class="data-select" *ngIf="displayMode === 'spectrum'">
+              <option *ngFor="let r of monitorHistory; let i = index" [value]="i">
+                {{ r.prediction }} — {{ r.timestamp }}
+              </option>
+            </select>
+            <div class="agent-tabs">
+              <button [class.active]="currentAgent === 'drone'" (click)="switchAgent('drone')">Drone</button>
+              <button [class.active]="currentAgent === 'ship'" (click)="switchAgent('ship')">Boat</button>
+              <button [class.active]="currentAgent === 'ground'" (click)="switchAgent('ground')">Ground</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-body main-content-area" style="position:relative">
+          <!-- Live Video -->
+          <div class="full-view" [style.display]="displayMode === 'video' ? 'flex' : 'none'" style="position:relative;flex-direction:column">
+            <video #droneVideo id="droneVideo" autoplay muted playsinline
+              style="width:100%;height:100%;object-fit:contain;background:#000;display:block"></video>
+            <div class="overlay-info" *ngIf="streamConnected">
+              ● LIVE | {{ currentAgent.toUpperCase() }}
+            </div>
+            <div *ngIf="streamConnected"
+              style="position:absolute;top:20px;right:20px;background:rgba(0,0,0,.7);color:#4ade80;font-family:monospace;font-size:12px;font-weight:700;padding:5px 12px;border-radius:4px;letter-spacing:1px">
+              {{ fpsValue }} FPS
+            </div>
+            <div *ngIf="!streamConnected"
+              style="position:absolute;inset:0;z-index:10;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#1e293b;color:#94a3b8;pointer-events:all">
+              <div style="font-size:14px;font-weight:700;color:#dc2626;letter-spacing:2px;margin-bottom:12px">
+                <span class="live-dot">●</span> Waiting for stream...
+              </div>
+              <div style="font-size:11px">rtmp://100.108.78.9:1935/live/stream</div>
+              <button (click)="startStream()" style="margin-top:16px;padding:8px 20px;background:#7c3aed;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px;z-index:11;position:relative">
+                Connect
+              </button>
+            </div>
+          </div>
+
+          <!-- Spectrum Data -->
+          <div class="data-view-container" *ngIf="displayMode === 'spectrum'">
+            <div class="content-box" *ngIf="subDisplayMode === 'bmp'">
+              <div class="data-tag">
+                {{ currentAgent.toUpperCase() }} | RAW BMP 800×1280
+                <span *ngIf="currentAgent === 'ship' && rpiTimestamp"
+                  style="margin-left:10px;color:#dc2626;font-weight:700;animation:blink 1s infinite">
+                  ● LIVE
+                </span>
+                <span *ngIf="currentAgent === 'ship' && rpiTimestamp"
+                  style="margin-left:6px;color:#64748b;font-weight:400;font-size:10px">
+                  {{ rpiTimestamp }}
+                </span>
+              </div>
+              <div class="view-placeholder bmp-bg">
+                <img [src]="bmpUrl" alt="Spectral BMP" style="max-width:100%;max-height:100%;object-fit:contain;">
+                <div class="file-name">{{ selectedBmpName }}</div>
+              </div>
+            </div>
+            <div class="content-box" *ngIf="subDisplayMode === 'txt'">
+              <div class="data-tag">
+                {{ currentAgent.toUpperCase() }} | SG Filtered 1280-dim
+                <span *ngIf="currentAgent === 'ship' && rpiTimestamp"
+                  style="margin-left:10px;color:#dc2626;font-weight:700;animation:blink 1s infinite">
+                  ● LIVE
+                </span>
+                <span *ngIf="currentAgent === 'ship' && rpiTimestamp"
+                  style="margin-left:6px;color:#64748b;font-weight:400;font-size:10px">
+                  {{ rpiTimestamp }}
+                </span>
+              </div>
+              <div class="view-placeholder chart-bg">
+                <canvas id="spectrumChart"></canvas>
+                <div class="file-name">{{ selectedTxtName }}</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Monitor Log -->
+          <div class="history-view" *ngIf="displayMode === 'history'">
+            <table class="history-table">
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Device</th>
+                  <th>Prediction</th>
+                  <th>Confidence</th>
+                  <th>Pollution Level</th>
+                  <th>Image</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let r of monitorHistory" [ngStyle]="{'border-left': '4px solid ' + r.color}">
+                  <td>{{ r.timestamp }}</td>
+                  <td>{{ r.device }}</td>
+                  <td><span class="pred-badge" [ngStyle]="{'color': r.color}">{{ classLabel(r.prediction) }}</span></td>
+                  <td>{{ r.confidence | number:'1.1-1' }}%</td>
+                  <td><span class="level-badge level-{{ r.level }}">{{ levelLabel(r.level) }}</span></td>
+                  <td>
+                    <img *ngIf="r.image_url" [src]="'http://100.108.78.9:5000' + r.image_url" style="height:40px;border-radius:4px;">
+                    <span *ngIf="!r.image_url" style="color:#555">—</span>
+                  </td>
+                </tr>
+                <tr *ngIf="monitorHistory.length === 0">
+                  <td colspan="6" style="text-align:center;color:#555;padding:30px;">No records yet</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- LIVE RPi 右下角標示（Drone + Boat） -->
+          <div *ngIf="currentAgent === 'ship' && rpiTimestamp"
+            style="position:absolute;bottom:16px;right:16px;z-index:20;display:flex;align-items:center;gap:6px;background:#dc2626;color:#fff;padding:6px 14px;border-radius:8px;font-size:13px;font-weight:700;letter-spacing:1px;box-shadow:0 2px 8px rgba(220,38,38,.4)">
+            <span>●</span> LIVE RPi
+            <span style="font-size:11px;font-weight:400;opacity:.85;margin-left:4px">{{ rpiTimestamp }}</span>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- Right 40%: AI Analysis Panel -->
+    <aside class="ai-panel">
+
+      <!-- Detection Result -->
+      <div class="card result-card">
+        <div class="card-header">Detection Result</div>
+        <div class="card-body result-body">
+          <div class="result-main">
+            <div class="result-class" [ngStyle]="{'color': predictionColor}">{{ predictionZh }}</div>
+            <div class="result-sub">{{ predictionClass }}</div>
+          </div>
+          <div class="result-meta">
+            <div class="meta-item">
+              <span class="meta-label">Confidence</span>
+              <span class="meta-val" style="color:#58a6ff">{{ confidence }}</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Pollution Level</span>
+              <span class="level-badge level-{{ currentLevel }}">{{ currentLevelLabel }}</span>
+            </div>
+          </div>
+          <button class="analyze-btn" (click)="runAnalysis()" [disabled]="isAnalyzing">
+            {{ isAnalyzing ? 'Analyzing...' : 'Run Pollution Analysis' }}
+          </button>
+        </div>
+      </div>
+
+      <!-- LLM Chat -->
+      <div class="card chat-card">
+        <div class="card-header">LLM Expert Q&A (Llama 3.1 + RAG)</div>
+        <div class="card-body" style="flex-direction:column;padding:0;align-items:stretch;">
+          <div class="chat-history" #chatContainer>
+            <div *ngFor="let msg of chatHistory" [ngClass]="['chat-bubble', msg.role.toLowerCase()]">
+              <div class="role-tag">{{ msg.role === 'User' ? 'You' : 'Expert' }}</div>
+              <div class="message-text" [innerHTML]="msg.text"></div>
+            </div>
+            <div *ngIf="isThinking" class="thinking">Expert is searching literature...</div>
+          </div>
+          <div class="chat-input-wrapper">
+            <input [(ngModel)]="chatInput" (keyup.enter)="sendToAI()" placeholder="Ask about pollution treatment, source tracing..." />
+            <button (click)="sendToAI()" [disabled]="isThinking">Send</button>
+          </div>
+        </div>
+      </div>
+
+    </aside>
+  </div>
+</div>

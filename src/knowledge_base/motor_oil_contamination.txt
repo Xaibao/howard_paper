@@ -1,0 +1,59 @@
+Motor Oil (Used Engine Oil) Contamination
+==========================================
+
+Chemical Composition:
+Motor oil (used engine oil) is a complex mixture of hydrocarbons (mineral oil base), additives (detergents, antioxidants, anti-wear agents), and combustion byproducts (heavy metals like lead, zinc, cadmium, and polycyclic aromatic hydrocarbons - PAHs).
+
+Spectral Characteristics (300-1000 nm):
+- Motor oil has a distinctly DIFFERENT spectral profile from food oils (correlation ~0.6-0.78 with others)
+- Strong absorption in the 400-600 nm range due to aromatic hydrocarbons and degradation products
+- Dark brown/black color causes high absorption across visible spectrum
+- Characteristic lower reflectance compared to clear vegetable oils
+- Easiest to distinguish among FOG classes due to mineral vs. biological origin
+
+Pollution Sources and Origins:
+- Automotive repair shops and garages
+- Industrial machinery lubricant discharge
+- Illegal dumping of used engine oil
+- Storm drain contamination from parking lots
+- Marine vessel engine discharge
+- Railroad track maintenance areas
+
+Environmental Hazards:
+- Extremely persistent in environment (does not biodegrade easily)
+- Contains carcinogenic PAHs (polycyclic aromatic hydrocarbons)
+- 1 liter of motor oil can contaminate up to 1,000,000 liters of water
+- Heavy metals (Pb, Zn, Cd) cause long-term soil and water toxicity
+- Bioaccumulation in aquatic organisms
+- Classified as hazardous waste in most countries
+
+Immediate Identification Indicators:
+- Dark coloration (dark brown to black)
+- Characteristic petroleum/hydrocarbon odor
+- Rainbow sheen on water surface (thin film interference)
+- Very viscous texture
+- Does not dissolve in water (forms floating layer)
+
+Emergency Response Protocol:
+1. Immediate containment: Deploy floating oil booms around contamination zone
+2. Source identification: Trace upstream to find discharge point
+3. Mechanical removal: Use oil skimmers and vacuum trucks
+4. Report to environmental authorities (criminal offense in most jurisdictions)
+5. Monitor for 30 days post-cleanup for groundwater impact
+
+Treatment Methods:
+- Mechanical: Skimming, boom containment, vacuum extraction
+- Chemical: Dispersants (controversial - toxic to marine life)
+- Biological: Bioremediation using oil-degrading bacteria (Alcanivorax, Marinobacter)
+- Physical: Activated carbon adsorption for trace contamination
+- In-situ burning (only for large offshore spills)
+
+Regulatory Limits:
+- WHO guideline: <0.01 mg/L total petroleum hydrocarbons in drinking water
+- EPA limit: 0.1 mg/L in surface water discharge
+- Immediate shutdown required if detected at industrial discharge points
+
+Classification in AI System:
+- Class label: motor_oil
+- Accuracy in V2 system: 100% recall (easiest to classify)
+- Spectral correlation with food oils: 0.60-0.78 (distinctly different)

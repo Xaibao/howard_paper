@@ -1,0 +1,11 @@
+=== FL Training Log ===
+Round 01 | Loss: 0.4130 | Accuracy: 1.0000
+Round 02 | Loss: 0.4023 | Accuracy: 1.0000
+Round 03 | Loss: 0.4093 | Accuracy: 0.9811
+Round 04 | Loss: 0.4040 | Accuracy: 1.0000
+Round 05 | Loss: 0.3999 | Accuracy: 1.0000
+Round 06 | Loss: 0.3950 | Accuracy: 1.0000
+Round 07 | Loss: 0.3996 | Accuracy: 1.0000
+Round 08 | Loss: 0.3952 | Accuracy: 1.0000
+Round 09 | Loss: 0.3929 | Accuracy: 1.0000
+Round 10 | Loss: 0.3988 | Accuracy: 1.0000

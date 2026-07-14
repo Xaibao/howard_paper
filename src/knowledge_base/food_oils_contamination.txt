@@ -1,0 +1,103 @@
+Food Oils Contamination: Olive Oil, Palm Oil, Lard
+=======================================================
+
+Overview:
+Food-grade oils (olive oil, palm oil, lard) represent biological FOG contamination primarily from food service and food processing industries. While less toxic than motor oil, they cause significant environmental damage through oxygen depletion and fatberg formation.
+
+== OLIVE OIL ==
+
+Spectral Characteristics (300-1000 nm):
+- Clear yellowish-green liquid, high transmittance in visible range
+- Absorption peaks related to chlorophyll (~670 nm in fresh oil)
+- Oleic acid (C18:1) dominant fatty acid - characteristic NIR profile
+- Spectral correlation with palm oil: 0.964; with lard: 0.965
+- Classification accuracy: 86.2% recall (partial misclassification with palm oil)
+
+Chemical Composition:
+- Predominantly monounsaturated fatty acids (oleic acid 55-83%)
+- Polyphenols, tocopherols (antioxidants)
+- Squalene and other minor compounds
+
+Pollution Sources:
+- Olive oil processing plants and mills
+- Restaurant and food service kitchen discharge
+- Food manufacturing facilities
+- Illegal dumping of expired olive oil stock
+
+Environmental Impact:
+- Creates floating films preventing gas exchange
+- High BOD (Biological Oxygen Demand) - depletes dissolved oxygen
+- Biodegradable but in high concentrations overwhelms natural degradation
+- Attracts pests and promotes algal blooms
+
+== PALM OIL ==
+
+Spectral Characteristics (300-1000 nm):
+- Semi-solid at room temperature, yellowish-orange when liquid
+- Beta-carotene gives characteristic absorption around 450 nm
+- Spectral correlation with water: 0.991 (HIGHEST - hardest to distinguish!)
+- Spectral correlation with olive oil: 0.964
+- Classification accuracy: 52% recall (frequently misclassified as water)
+- Most challenging class due to near-identical spectral profile to water
+
+Chemical Composition:
+- Palmitic acid (C16:0) ~44%, Oleic acid ~39%
+- Beta-carotene (gives orange color)
+- Vitamin E (tocopherols and tocotrienols)
+
+Pollution Sources:
+- Palm oil mills (Southeast Asia primary concern)
+- POME (Palm Oil Mill Effluent) - highly polluting industrial wastewater
+- Food processing plants using palm oil (cookies, margarine, chips)
+- Restaurant deep-frying oil disposal
+
+Environmental Impact:
+- Palm oil mill effluent (POME) has BOD 25,000-65,000 mg/L (extremely high)
+- Major cause of river pollution in Malaysia and Indonesia
+- Long-term eutrophication of water bodies
+- Affects fish populations and aquatic biodiversity
+
+Treatment (Palm Oil Specifically):
+- Anaerobic digestion (biogas production from POME)
+- Ponding system treatment (standard in palm oil industry)
+- Membrane bioreactor (MBR) for advanced treatment
+- Constructed wetlands for polishing
+
+== PORK FAT (LARD) ==
+
+Spectral Characteristics (300-1000 nm):
+- White/cream colored solid, becomes clear liquid when melted
+- High saturated fat content gives specific NIR absorption pattern
+- Spectral correlation with olive oil: 0.965
+- Classification accuracy: 100% recall in V2 system
+- Distinguishable despite high correlation with food oils due to amplitude differences
+
+Chemical Composition:
+- Palmitic acid (C16:0) ~26%, Stearic acid (C18:0) ~14%
+- Oleic acid (C18:1) ~44% - similar to olive/palm
+- Animal-derived lipids
+
+Pollution Sources:
+- Slaughterhouses and meat processing plants
+- Restaurant kitchen grease traps
+- Pork rendering facilities
+- Illegal discharge from food establishments
+
+Environmental Impact:
+- High BOD creating anaerobic conditions in water
+- Solid deposits forming fatbergs in sewer systems
+- Hydrogen sulfide (H2S) production in anaerobic decomposition (toxic and corrosive)
+- Grease trap overflow during heavy rainfall events
+
+Treatment Methods (All Food Oils):
+1. Grease traps/interceptors: Mandatory for food service establishments
+2. Biological treatment: Lipid-degrading microorganisms (Pseudomonas, Bacillus)
+3. Hot water and alkaline cleaning: Saponification of fats
+4. Enzyme treatment: Lipases breaking down triglycerides
+5. Aerobic composting: For solid fat waste
+6. Mechanical separation: Centrifugation for high-concentration effluent
+
+Regulatory Requirements:
+- Grease trap maintenance required every 1-3 months
+- Discharge limit: typically <100 mg/L FOG in municipal sewer
+- Zero discharge to stormwater systems (direct to waterways)

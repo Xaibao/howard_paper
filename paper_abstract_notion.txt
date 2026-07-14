@@ -1,0 +1,128 @@
+# Abstract
+
+最多 200 字
+
+---
+
+研究情境（50 字）
+
+2024 年 11 月基隆河發生 FOG（Fats, Oils, Grease）污染事件，污染範圍達 3.2 公里，傳統無人機視覺偵測因污染物透明無色而完全失效，延誤超過 6 小時。本研究提出搭載近紅外線光譜儀之自主巡邏機器人，實現即時水質辨識與污染溯源。
+
+---
+
+1. Problem（問題）（50 字）
+
+根據研究情境及核心技術，本研究可解決以下問題：
+
+組合式人工智慧（Composite AI）
+- 真實光譜量測資料不足：每類僅 30 筆，不足以訓練深度學習模型
+- 異質資料融合困難：光譜數值（1280 維）與光譜影像（BMP）難以有效整合
+- 相似類別辨識困難：Palm Oil 與 Water 光譜相關係數達 0.991，分類邊界模糊
+- 單一模態特徵不足：僅使用光譜或影像單一輸入時，辨識準確率受限
+
+自適應人工智慧（Adaptive AI）
+- 邊緣端推論延遲高：Cloud 集中推論無法滿足現場即時辨識需求（< 1 秒）
+- 固定模型無法持續改善：單次訓練後模型無法隨新資料動態更新
+- 不同部署環境差異大：各地水質背景不同，單一全局模型泛化能力受限
+
+可解釋人工智慧（Explainable AI）
+- 決策過程缺乏透明度：無法向環保人員說明模型判斷依據
+- 污染波段難以定位：無法識別哪些光譜波段對特定污染類別最具判別意義
+- 模型除錯困難：分類錯誤時無法分析原因（如 Palm Oil 誤判為 Water）
+
+分散式人工智慧（Distributed AI）
+- 多站點資料無法集中：各監測站原始光譜資料涉及隱私，無法上傳 Cloud 共用
+- 集中式架構單點故障風險：Cloud 斷線導致現場推論中斷
+- 模型更新需重新部署：缺乏跨站協同學習機制，各站模型無法互相提升
+
+---
+
+2. Solution（方法）（50 字）
+
+本研究針對 FOG 水質污染辨識問題，整合四大 AI 技術建構自主光譜監測系統：
+
+組合式人工智慧（Composite AI）
+- 採用條件生成對抗網路（CGAN）分別訓練光譜曲線生成器與光譜影像生成器，將每類 30 筆真實量測擴增至 1000 筆訓練資料
+- 設計 MLP-Transformer 雙分支融合模型：MLP 分支處理 1280 維光譜數值，Transformer 分支處理 400×1280 光譜影像，融合後輸出 5 類分類結果
+- 透過多模態特徵融合提升對相似污染類別（Palm Oil / Water）的辨識能力
+
+自適應人工智慧（Adaptive AI）
+- 建構 Device-Edge-Cloud 三層推論架構：樹莓派負責採集，Jetson Orin Nano 於邊緣端執行模型推論（< 1 秒），Cloud 負責分析與報告
+- Edge 端載入訓練好的 MLP-Transformer 模型，斷線仍可即時辨識，不依賴網路連線
+
+可解釋人工智慧（Explainable AI）
+- 採用 LIME（Local Interpretable Model-Agnostic Explanations）對光譜影像進行語義分區解釋，識別對分類貢獻最大的影像區域
+- 採用 Integrated Gradients（IG）對分類器及 CGAN 生成器進行波段重要性分析，定位關鍵近紅外波長
+
+分散式人工智慧（Distributed AI）
+- 採用聯邦學習（Federated Learning）架構：各 Edge Client 使用本地資料訓練，僅上傳模型權重至 Cloud FL Server 進行 FedAvg 聚合
+- 資料不離開現場，保障隱私；Cloud 聚合後廣播全局模型，實現跨站協同提升
+
+---
+
+3. Contribution（貢獻）（50 字）
+
+本研究提出一套結合組合式 AI、自適應 AI、可解釋 AI 及分散式 AI 之機器人光譜水質監測系統。為驗證有效性，透過定量與定性評估方式分析，並與相關文獻比較。
+
+3.1 組合式 AI（CGAN + MLP-Transformer）
+
+定量指標
+- CGAN 生成品質：MAE（真實 vs 生成光譜）、光譜形態相似度
+- 分類效能：Accuracy、Precision、Recall、F1-score、ROC-AUC
+- 各類別效能：Per-class Accuracy、Confusion Matrix
+
+定性指標
+- 相似光譜類別辨識能力
+- CGAN 生成樣本視覺合理性
+
+3.2 自適應 AI（Device-Edge-Cloud 架構）
+
+定量指標
+- 推論即時性：Inference Time（ms）、Throughput（FPS）
+- 邊緣端效能：CPU/GPU Utilization、Memory Usage
+- 離線可用性：Offline Inference Success Rate
+
+定性指標
+- 斷線環境下之持續辨識能力
+- 三層架構部署便利性
+
+3.3 可解釋 AI（LIME + Integrated Gradients）
+
+定量指標
+- IG 收斂性：Delta（IG 誤差，目標 ≈ 0）
+- 波段重要性：Top-K 重要波長與污染物吸收峰對應程度
+- 解釋一致性：Explanation Stability across samples
+
+定性指標
+- Palm Oil 誤判原因分析（water 相關波段影響）
+- 決策可理解程度
+
+3.4 分散式 AI（Federated Learning）
+
+定量指標
+- 聯邦學習效能：Global Model Accuracy、Convergence Round
+- 通訊效率：Communication Cost、Training Time
+- 資料隱私：Data Privacy Preservation（原始資料不離站）
+
+定性指標
+- 多站協同學習能力
+- 系統擴充性
+
+3.5 整體系統比較
+
+評估面向 | 指標
+水質辨識 | Accuracy、F1-score、ROC-AUC
+即時性 | Inference Time、Response Time
+資料效率 | 訓練樣本數（30 vs 1000/類）
+可解釋性 | 波段重要性可視化
+系統架構 | Edge 離線能力、FL 隱私保護
+
+---
+
+Keywords（從 IEEE Taxonomy 挑 5 個）
+
+1. Water quality monitoring
+2. Near-infrared spectroscopy
+3. Generative adversarial networks
+4. Edge computing
+5. Federated learning

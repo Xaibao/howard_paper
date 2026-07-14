@@ -1,0 +1,35 @@
+FOG Water Contamination Overview
+==================================
+
+FOG (Fat, Oil, and Grease) contamination refers to the presence of fats, oils, and greases in water bodies or wastewater systems. FOG is one of the leading causes of sewer blockages (known as "fatbergs") and environmental water pollution worldwide.
+
+Sources of FOG Contamination:
+- Industrial discharge: manufacturing plants, automotive workshops, machine shops releasing motor oil and lubricants
+- Food service establishments: restaurants, food processing plants releasing cooking oils (palm oil, olive oil, lard)
+- Agricultural runoff: animal farms releasing lard and lard
+- Urban stormwater: vehicle maintenance areas washing motor oil into drains
+
+Environmental Impact:
+- Oxygen depletion in water bodies, harming aquatic life
+- Formation of fatbergs blocking sewer infrastructure (costs millions to remove)
+- Coating of water surfaces preventing gas exchange
+- Bioaccumulation of hydrocarbons in food chains
+- Groundwater contamination from oil seepage
+
+Detection Challenges:
+- Visual inspection is unreliable (small concentrations invisible)
+- Traditional lab tests take 24-48 hours
+- Real-time monitoring requires spectral analysis
+- Different oils have similar spectral signatures, requiring advanced AI classification
+
+Spectral Analysis Approach:
+- Near-infrared and visible spectroscopy (300-1000 nm range)
+- Each substance has characteristic absorption peaks
+- AI-based classification achieves >87% accuracy with CGAN augmentation
+- MLP-Transformer fusion model combines 1D spectral and 2D image features
+
+Emergency Response:
+- Contamination detected in <5 minutes using robotic spectral monitoring
+- Immediate isolation of contamination source
+- Deployment of absorbent booms and skimmers
+- Bioremediation for long-term treatment

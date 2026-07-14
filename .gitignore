@@ -1,0 +1,42 @@
+# 大型資料集（太大，不上傳）
+data/dataset/
+data/data/
+data/real/
+data/real_val/
+data/real_val_mixed/
+data/augmented/
+data_paper/real_source/real_test/
+data_paper/real_source/cgan_source/
+data_paper/cgan_generated/
+
+# 模型權重（單檔超過 100MB）
+models/*.pth
+models/fl_rounds/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.env
+*.log
+
+# Node / Angular
+frontend/node_modules/
+frontend/.angular/
+frontend/dist/
+
+# RTMP
+rtmp-server/node_modules/
+rtmp-server/media/
+
+# 系統
+.DS_Store
+*.swp
+*.tmp
+
+# ChromaDB 向量庫（本地）
+src/fog_expert_db/
+
+# RPi share
+rpi_share/
+rtmp-server/nginx-rtmp-module/

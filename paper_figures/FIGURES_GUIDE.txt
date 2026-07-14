@@ -1,0 +1,179 @@
+paper_figures/ 圖表說明
+========================
+共 92 個檔案（46 張圖 × PNG + PDF，另含 10 個 BMP）
+每張圖都有 .png（預覽用）和 .pdf（論文投稿用）兩個版本。
+
+================================================================================
+【一、CGAN 生成品質驗證】
+================================================================================
+
+cgan_curve_comparison_meanstd
+  說明：5 類別各自的「真實 vs CGAN 生成」光譜對比圖（直排 5 列）
+        每列顯示真實樣本平均曲線（實線）± 1 標準差（陰影），
+        以及 CGAN 生成樣本的對應分布。
+  用途：論文 CGAN 品質評估，展示生成光譜的形態保真度。
+  字體：Times New Roman 15pt，dpi 600
+
+{cls}_real_curve（5 張：motor_oil / olive_oil / palm_oil / lard / water）
+  說明：各類別真實量測樣本的原始光譜曲線（多條疊加），x 軸為波長（nm），
+        y 軸為光譜強度（Intensity）。
+  用途：展示真實樣本的光譜多樣性與類別特徵。
+
+{cls}_generated_curve（5 張）
+  說明：各類別 CGAN 生成樣本的光譜曲線（多條疊加），格式同上。
+  用途：與 real_curve 並排，視覺比對 CGAN 生成品質。
+
+{cls}_curve_difference（5 張：motor_oil / olive_oil / palm_oil / lard / water）
+  說明：各類別的真實 vs 生成差異分析圖，垂直三格：
+        上：真實樣本 mean ± 1 Std（陰影）
+        中：CGAN 生成樣本 mean ± 1 Std（陰影）
+        下：殘差（Residual = real mean − generated mean），
+            紅色填色 = 真實較高，藍色填色 = 生成較高，並標示 MAE 值
+  用途：定量展示 CGAN 生成誤差，並定位誤差集中的波段。
+  字體：Times New Roman 13pt，dpi 300，figsize 7×10
+
+{cls}_real.bmp（5 張 BMP）
+  說明：各類別真實樣本的光譜可視化影像（400×1280 像素，灰階 BMP）。
+        MSR-001 光譜儀直接輸出，橫軸為波長，縱軸為掃描行，
+        亮度代表光譜強度。
+  用途：論文中展示輸入影像（Transformer 分支的實際輸入格式）。
+
+{cls}_generated.bmp（5 張 BMP）
+  說明：各類別 CGAN 生成的對應光譜影像（格式同 real.bmp）。
+  用途：與 real.bmp 並列，視覺確認 CGAN 影像生成品質。
+
+food_oils_compare
+  說明：5 類別平均光譜疊圖（Motor Oil / Olive Oil / Palm Oil / Lard / Water），
+        各類以不同顏色曲線區分，展示類別間光譜差異。
+  用途：論文 Supplementary 或 Introduction，說明 Palm Oil 與 Water
+        光譜高度相似（相關係數 0.991），是分類挑戰的核心原因。
+
+================================================================================
+【二、MLP-Transformer 分類效能（Epoch 100，論文主要結果）】
+================================================================================
+
+confusion_matrix_mlptransformer  ★ 論文主圖
+  說明：MLP-Transformer 在 1250 筆真實測試集上的混淆矩陣（epoch 100 模型）。
+        整體準確率 83.68%。
+        Palm Oil → Water 混淆嚴重（僅 32.0% 正確），已寫入 Discussion。
+  用途：論文主要分類結果圖。
+
+confusion_matrix_best  （備用，比較用）
+  說明：最佳模型（epoch 70，訓練期間最高點）的混淆矩陣，準確率 94.40%。
+  用途：補充比較，或 reviewer 問「為何不用最佳模型」時的對照圖。
+
+loss_curve_mlptransformer
+  說明：訓練過程的 Loss 曲線（100 epochs），包含訓練集與測試集 Loss 趨勢。
+  用途：展示模型收斂過程，確認無嚴重過擬合。
+
+mae_curve_mlptransformer
+  說明：訓練過程的 MAE（Mean Absolute Error）曲線（100 epochs）。
+  用途：輔助展示模型學習穩定性。
+
+metrics_curve_mlptransformer
+  說明：訓練過程的整體指標曲線（100 epochs），包含 Accuracy、Precision、
+        Recall、F1-score 四條曲線疊圖。
+  用途：論文訓練過程總覽圖。
+
+class_acc_curve_mlptransformer
+  說明：5 類別各自的 Accuracy 隨 epoch 變化曲線（100 epochs，5 條曲線）。
+  用途：展示各類別學習進度，識別困難類別（Palm Oil）。
+
+class_prec_curve_mlptransformer
+  說明：5 類別各自的 Precision 隨 epoch 變化曲線。
+  用途：分析各類別預測精準度趨勢。
+
+class_rec_curve_mlptransformer
+  說明：5 類別各自的 Recall 隨 epoch 變化曲線。
+  用途：分析各類別召回率趨勢。
+
+class_f1_curve_mlptransformer
+  說明：5 類別各自的 F1-score 隨 epoch 變化曲線。
+  用途：綜合精準度與召回率，展示各類別整體辨識能力。
+
+roc_curve_mlptransformer  ★ 論文主圖
+  說明：5 類別的 ROC 曲線（One-vs-Rest），包含各類 AUC 值。
+        使用 epoch 100 模型，在 1250 筆真實測試集上計算。
+  用途：論文標準評估圖，展示分類模型整體辨別能力。
+
+pr_curve_mlptransformer  ★ 論文主圖
+  說明：5 類別的 Precision-Recall 曲線，包含各類 AP 值。
+        使用 epoch 100 模型，在 1250 筆真實測試集上計算。
+  用途：論文標準評估圖，在類別不平衡情境下補充 ROC。
+
+roc_curve_best  （備用）
+  說明：最佳模型（epoch 70）的 ROC 曲線，準確率 94.40% 版本。
+
+pr_curve_best  （備用）
+  說明：最佳模型（epoch 70）的 PR 曲線。
+
+================================================================================
+【三、聯邦學習（Federated Learning）】
+================================================================================
+
+fl_convergence_curve  ★ 論文主圖
+  說明：FL 訓練 10 輪的收斂曲線，雙軸折線圖。
+        左軸（藍線，實線圓點）：Global Accuracy（%）
+        右軸（紅線，虛線方點）：Global Loss
+        X 軸：Communication Round（1–10）
+  數據摘要：
+        第 1 輪 Accuracy = 100.00%（預訓練模型起點已高）
+        第 3 輪短暫下滑至 98.11%，第 4 輪恢復 100.00% 並持續穩定
+        Loss 從 0.413（Round 1）穩定下降至最低 0.393（Round 9）
+        10 輪總耗時約 436 秒（7.3 分鐘）
+  用途：回應 reviewer 對 FL 收斂性的質疑，展示 FedAvg 聚合的穩定性。
+  字體：Times New Roman 13pt，dpi 300
+
+================================================================================
+【四、XAI — 可解釋人工智慧】
+================================================================================
+
+lime_palm_oil
+  說明：LIME（Local Interpretable Model-Agnostic Explanations）對
+        Palm Oil 樣本的影像區域解釋圖。
+        綠色區塊 = 支持分類為 Palm Oil 的影像區域，
+        紅色區塊 = 干擾分類的影像區域。
+  用途：論文 XAI 章節，展示模型對影像空間特徵的依賴分布。
+
+ig_cls_all_comparison
+  說明：Integrated Gradients (IG) 對 5 類別的波段重要性合併比較圖（直排 5 列）。
+        橫軸為波長（300-1000 nm），縱軸為歸一化屬性值（|Attribution|）。
+        紅色柱：Top-5 最重要波段；藍色柱：其餘波段。
+  用途：論文 XAI 章節，展示各類別依賴的關鍵近紅外波段。
+
+ig_cls_{cls}（5 張：motor_oil / olive_oil / palm_oil / lard / water）
+  說明：各類別的 IG 雙圖（上：原始輸入光譜；下：波段重要性長條圖）。
+        針對模型對真實類別的決策進行解釋。
+  用途：個別類別深度分析，論文附圖或 Supplementary。
+
+ig_palm_oil_band_importance
+  說明：IG 對 CGAN Generator 的波段重要性分析（針對 Palm Oil 類別）。
+        分析 CGAN 生成器在生成 Palm Oil 光譜時，哪些輸入條件波段影響最大。
+  用途：CGAN 可解釋性分析，補充 CGAN 生成機制。
+
+ig_palm_oil_spectrogram
+  說明：Palm Oil 樣本的光譜圖（Spectrogram），展示 BMP 影像形式。
+  用途：IG 分析的輸入影像參考圖。
+
+ig_palm_oil_spectrum
+  說明：Palm Oil 原始光譜曲線（1280 維），IG 分析的輸入光譜參考圖。
+  用途：搭配 ig_palm_oil_band_importance 使用。
+
+================================================================================
+【使用建議】
+================================================================================
+
+投稿論文（Word/LaTeX）：請使用 .pdf 版本（向量圖，縮放不失真）
+簡報 / 預覽確認：請使用 .png 版本
+BMP 影像（.bmp）：直接插入論文，展示 Transformer 分支的輸入格式
+
+主要論文圖（建議優先使用）：
+  ★ confusion_matrix_mlptransformer.pdf
+  ★ roc_curve_mlptransformer.pdf
+  ★ pr_curve_mlptransformer.pdf
+  ★ cgan_curve_comparison_meanstd.pdf
+  ★ {cls}_curve_difference.pdf（5 張選需要的類別）
+  ★ fl_convergence_curve.pdf
+  ★ ig_cls_all_comparison.pdf
+  ★ lime_palm_oil.pdf
+  ★ food_oils_compare.pdf
