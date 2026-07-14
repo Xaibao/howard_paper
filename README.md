@@ -158,7 +158,83 @@ Output:
 - `models/best_mlp_transformer_v2.pth` — best validation accuracy checkpoint
 - `models/mlp_transformer_v2.pth` — final epoch 100 model
 
-## Step 4 — Generate Paper Figures
+## Step 4 — Build RAG Knowledge Base (LLM + RAG)
+
+The system uses **Retrieval-Augmented Generation (RAG)** to ground LLM responses in domain-specific pollution literature.
+
+### Components
+
+| Component | Details |
+|-----------|---------|
+| LLM | Ollama + Llama 3.1 (local, port 11434) |
+| Embedding Model | `all-MiniLM-L6-v2` (HuggingFace, auto-downloaded) |
+| Vector Store | ChromaDB (persisted at `src/fog_expert_db/`) |
+| Documents | 11 files in `src/knowledge_base/` (PDF + TXT) |
+| Vectors | 188 vectors after chunking |
+
+### Knowledge Base Documents
+
+```
+src/knowledge_base/
+├── fog_contamination_overview.txt       # FOG pollution general overview
+├── food_oils_contamination.txt          # Food oils in water bodies
+├── motor_oil_contamination.txt          # Motor oil environmental impact
+├── water_treatment_response.txt         # Emergency treatment methods
+├── sensors-24-01833.pdf                 # Spectral sensing literature
+├── Spectrochip Pleroma Spec V8.pdf      # MSR-001 spectrometer specs
+├── ac3c01132_si_001.pdf                 # Supplementary chemistry data
+└── (+ 4 Taiwan regulatory PDF documents)
+```
+
+### Install Ollama + Llama 3.1
+
+```bash
+# Install Ollama
+curl -fsSL https://ollama.com/install.sh | sh
+
+# Pull Llama 3.1 model
+ollama pull llama3.1
+
+# Verify (should return a response)
+ollama run llama3.1 "hello"
+```
+
+### Build ChromaDB Vector Database
+
+Run once to index all knowledge base documents:
+
+```bash
+conda activate spectral
+python src/build_knowledge_db.py
+```
+
+Output: `src/fog_expert_db/` (ChromaDB, ~188 vectors)
+
+> **Note:** Only needs to be run once. The database is persisted on disk and loaded automatically when Flask starts.
+
+### How RAG Works in the System
+
+```
+User clicks "Run Pollution Analysis"
+          │
+          ▼
+Flask /api/analyze
+  1. Query ChromaDB → top-3 most relevant document chunks
+  2. Build prompt:
+       [Detection Result] Motor Oil, 93.1%, Level 3
+       [Reference Literature] <3 retrieved chunks>
+       [Task] Generate 4-section analysis in English
+  3. Call Ollama Llama 3.1 (local, port 11434)
+  4. Return structured analysis to dashboard
+```
+
+**Language Auto-Detection:**
+- Query > 85% ASCII characters → English prompt → English response
+- Contains Chinese characters → Chinese prompt → Chinese response
+
+---
+
+## Step 5 — Generate Paper Figures
 
 ```bash
 # Confusion matrix (real test set, 1250 samples)
@@ -205,7 +281,8 @@ Results saved to `outputs/fl_training_log.txt`.
 ## Prerequisites
 
 - Trained model at `models/best_mlp_transformer_v2.pth`
-- `ANTHROPIC_API_KEY` environment variable set
+- ChromaDB built at `src/fog_expert_db/` (run `python src/build_knowledge_db.py` once)
+- Ollama running with Llama 3.1: `ollama serve` + `ollama pull llama3.1`
 - (Optional) Raspberry Pi connected via Samba for Boat agent live data
 
 ## Start the System — 3 Terminals
