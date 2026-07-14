@@ -258,6 +258,38 @@ conda activate spectral && python src/federated/fl_client.py
 
 # Part 2 — Run the System
 
+## ⚙️ Changing the Server IP (New Computer)
+
+The system has the server IP hardcoded in 4 places. When deploying on a new machine, replace `100.108.78.9` with the new server's IP.
+
+**File 1 — `frontend/src/app/app.ts` (2 lines)**
+
+```typescript
+// Line 9 — Flask API base URL
+const API = 'http://{NEW_IP}:5000';
+
+// Line 60 — HLS video stream URL
+private hlsUrl = 'http://{NEW_IP}:18000/live/stream/index.m3u8';
+```
+
+**File 2 — `frontend/src/app/app.html` (2 lines)**
+
+```html
+<!-- Line 58 — drone push URL shown on screen (display only) -->
+<div>rtmp://{NEW_IP}:1935/live/stream</div>
+
+<!-- Line 124 — history log image URL -->
+[src]="'http://{NEW_IP}:5000' + r.image_url"
+```
+
+After editing, restart the Angular dev server (Terminal 3) — it will hot-reload automatically.
+
+**DJI drone push URL** → `rtmp://{NEW_IP}:1935/live/stream`
+
+> The RTMP server (`rtmp-server/`) uses `localhost` internally and does not need to change.
+
+---
+
 ## Prerequisites
 
 - `models/best_mlp_transformer_v2.pth` exists
