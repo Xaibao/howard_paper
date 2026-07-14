@@ -328,13 +328,54 @@ cd frontend && npx ng serve --host 0.0.0.0 --port 4200
 | `/api/rpi/predict` | GET | Inference on latest RPi file |
 | `/api/health` | GET | Health check |
 
-## (Optional) Raspberry Pi Live Data
+## (Optional) Raspberry Pi Samba — Boat Agent Live Data
+
+The Boat agent reads live `.bmp` + `_sg.txt` files from the Raspberry Pi via Samba (CIFS).
+
+### Step 1 — Install Samba client (first time only)
 
 ```bash
-sudo mount -t cifs //100.74.109.10/share /home/user/rpi_share -o username=pi,password=your_password
+sudo apt install cifs-utils
 ```
 
-Flask polls every 3 seconds, runs inference, updates Boat agent dashboard automatically.
+### Step 2 — Create mount point
+
+```bash
+mkdir -p ~/rpi_share
+```
+
+### Step 3 — Mount the RPi share
+
+```bash
+sudo mount -t cifs //100.74.109.10/share ~/rpi_share \
+  -o username=pi,password=t1204,uid=$(id -u),gid=$(id -g)
+```
+
+Verify it worked:
+
+```bash
+ls ~/rpi_share    # should show .bmp and _sg.txt files from RPi
+```
+
+### Step 4 — Start Flask (Terminal 1 as normal)
+
+Flask automatically polls `~/rpi_share` every 3 seconds, runs inference on the latest file, and updates the **Boat** agent panel on the dashboard.
+
+### Unmount when done
+
+```bash
+sudo umount ~/rpi_share
+```
+
+### If mount fails
+
+| Error | Fix |
+|-------|-----|
+| `mount error(115)` | RPi not reachable — check Tailscale (`tailscale status`) |
+| `Permission denied` | Wrong username/password — verify RPi Samba config |
+| `cifs-utils not found` | Run `sudo apt install cifs-utils` first |
+
+> RPi Tailscale IP: `100.74.109.10` · Share name: `share` · User: `pi`
 
 ---
 
