@@ -1,6 +1,7 @@
 # 大型資料集（太大，不上傳）
 data/dataset/
 data/data/
+data/real/cgan_source/test/
 data/real_val/
 data/real_val_mixed/
 data/augmented/
