@@ -1,16 +1,15 @@
 # 大型資料集（太大，不上傳）
 data/dataset/
 data/data/
-data/real/
 data/real_val/
 data/real_val_mixed/
 data/augmented/
-data_paper/real_source/real_test/
-data_paper/real_source/cgan_source/
 data_paper/cgan_generated/
 
-# 模型權重（單檔超過 100MB）
+# 模型權重（只保留論文推論用的兩個）
 models/*.pth
+!models/best_mlp_transformer_v2.pth
+!models/mlp_transformer_v2.pth
 models/fl_rounds/
 
 # Python

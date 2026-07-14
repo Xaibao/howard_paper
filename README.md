@@ -9,11 +9,62 @@ This repository contains the full implementation for reproducing the paper, incl
 
 ## Table of Contents
 
+- [Research Value & Motivation](#research-value--motivation)
 - [System Requirements](#system-requirements)
 - [Part 1 — Training (Reproduce the Model)](#part-1--training-reproduce-the-model)
 - [Part 2 — Run the System (Dashboard)](#part-2--run-the-system-dashboard)
 - [Architecture Overview](#architecture-overview)
 - [Repository Structure](#repository-structure)
+
+---
+
+## Research Value & Motivation
+
+### Background — Why Spectral Monitoring?
+
+On **November 27, 2024**, a major FOG (Fats, Oils, and Grease) contamination event occurred in the Keelung River, Taiwan, affecting a 3.2 km stretch. Emergency response was delayed by over 6 hours because **conventional drone surveillance — relying entirely on visual cameras — failed to detect the colorless, transparent FOG pollutants on the water surface**.
+
+This exposes a fundamental gap in current water quality disaster response: visual methods cannot distinguish transparent oil films from clean water.
+
+### What This Research Proposes
+
+This paper introduces the **first AI-based robotic spectral monitoring system** that replaces visual detection with near-infrared (NIR) spectroscopy, enabling rapid identification of invisible FOG pollutants in real time.
+
+| Problem | This Work's Solution |
+|---------|---------------------|
+| Transparent FOG undetectable visually | NIR spectrum identifies molecular signatures |
+| Limited real measurement data (30/class) | CGAN synthesizes 1,000 training samples/class |
+| Slow cloud-only inference | MLP-Transformer on Jetson Edge: < 1 second |
+| Multi-site data privacy concerns | Federated Learning — raw data never leaves the site |
+| Black-box AI | XAI (LIME + Integrated Gradients) explains every prediction |
+
+### Target Pollutants (5 Classes)
+
+| Class | Chinese | Pollution Level | Spectral Characteristic |
+|-------|---------|:--------------:|------------------------|
+| Motor Oil | 機油 | Level 3 — Severe | High intensity, broad absorption band |
+| Olive Oil | 橄欖油 | Level 2 — Moderate | Mid intensity, specific band peaks |
+| Palm Oil | 棕櫚油 | Level 2 — Moderate | Highly correlated with water (r = 0.991) |
+| Lard | 豬油 | Level 2 — Moderate | Correlated with olive oil (r = 0.965) |
+| Water | 清水 | Level 0 — Normal | Baseline reference |
+
+### Key Contributions
+
+1. **Data augmentation under scarcity**: CGAN with multi-term spectral loss (slope + linear + reconstruction + high-band) generates physically consistent synthetic spectra from only 30 real samples per class.
+2. **Dual-modal fusion**: MLP branch (1280-dim spectrum) + Transformer branch (400×1280 BMP image) combined for robust classification.
+3. **Full-stack deployment**: Device → Edge → Cloud architecture with live dashboard, LLM expert analysis, and RAG-powered Q&A.
+4. **Interpretability**: LIME highlights spatial regions in BMP; Integrated Gradients identifies which wavelength bands (nm) drive each classification.
+5. **Privacy-preserving multi-site FL**: FedAvg convergence stable from Round 4/10; each site's raw data remains local.
+
+### Use Cases
+
+| Scenario | How This System Applies |
+|----------|------------------------|
+| **River emergency response** | Autonomous robot patrols river after an incident report; edge inference identifies pollutant type and level within 1 second; cloud dashboard alerts responders with treatment recommendations |
+| **Factory discharge monitoring** | Deployed at industrial outflow points; FL allows multiple factories to share a global model without exposing proprietary data |
+| **Remote or disconnected areas** | Edge inference runs offline — no internet required for real-time identification |
+| **Environmental regulatory compliance** | Continuous spectral logging with timestamped records provides auditable evidence for regulators |
+| **Multi-river simultaneous monitoring** | FL aggregates learnings from different river sites, improving accuracy for rare pollutant events |
 
 ---
 
