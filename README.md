@@ -19,13 +19,51 @@ This repository contains the full implementation for reproducing the paper, incl
 
 ## System Requirements
 
-| Component | Requirement |
-|-----------|------------|
-| OS | Ubuntu 20.04+ |
-| GPU | NVIDIA GPU with CUDA 12.x (tested: RTX 3060 12GB) |
-| Python | 3.10+ (via Conda) |
-| Node.js | v18+ |
-| CUDA Driver | nvidia-535+ |
+Two hardware profiles are listed below — one for full training + system, one for running the system only.
+
+### Minimum Requirements — Run System Only (No Training)
+
+| Component | Minimum | Tested |
+|-----------|---------|--------|
+| OS | Ubuntu 20.04+ | Ubuntu 22.04 |
+| CPU | 4-core | Intel/AMD 8-core |
+| RAM | 16 GB | 32 GB |
+| GPU VRAM | 4 GB (NVIDIA, CUDA 12.x) | RTX 3060 12 GB |
+| Storage | 15 GB free | NVMe SSD |
+| CUDA Driver | 530+ | nvidia-535 |
+| Node.js | v18+ | v20.20.2 |
+| Python | 3.10+ | 3.10 (Conda) |
+
+> The 15 GB covers: conda environment (~8 GB), model weights (~1 GB), ChromaDB, Angular build.
+
+### Minimum Requirements — Full Training (CGAN + MLP-Transformer)
+
+| Component | Minimum | Tested |
+|-----------|---------|--------|
+| OS | Ubuntu 20.04+ | Ubuntu 22.04 |
+| CPU | 8-core | Intel/AMD 8-core |
+| RAM | 32 GB | 32 GB |
+| GPU VRAM | **8 GB** (NVIDIA, CUDA 12.x) | RTX 3060 12 GB |
+| Storage | **80 GB** free | NVMe SSD |
+| CUDA Driver | 530+ | nvidia-535 |
+
+> Storage breakdown: CGAN-generated dataset (~6.2 GB) + data source (~335 MB) + conda env (~8 GB) + model weights (~1 GB) + outputs/figures (~2 GB) + buffer.
+
+### LLM Requirements (Ollama + Llama 3.1)
+
+| Component | Minimum | Notes |
+|-----------|---------|-------|
+| RAM | **+8 GB** additional | Llama 3.1 8B Q4_K_M needs ~5–6 GB RAM |
+| GPU VRAM | Optional (CPU-only OK) | GPU offload speeds up inference |
+| Storage | +5 GB | For Llama 3.1 model weights |
+
+> Llama 3.1 runs on CPU if GPU VRAM is fully used by the PyTorch model. Inference will be slower (~10–30s per response) but functional.
+
+### ⚠️ Important Notes
+
+- **Do NOT update the Linux kernel to 6.8.0-124+** — known boot failure on this hardware configuration. Stay on 6.8.0-111.
+- Use `Ctrl+C` to stop training, never `Ctrl+Z` (causes GPU memory leak).
+- Add `PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True` before training commands if you encounter CUDA OOM errors.
 
 ### Install Dependencies
 
