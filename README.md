@@ -258,64 +258,186 @@ conda activate spectral && python src/federated/fl_client.py
 
 # Part 2 — Run the System
 
-## ⚙️ Changing the Server IP (New Computer)
+## Complete Setup on a New Computer (From Zero)
 
-The system has the server IP hardcoded in 4 places. When deploying on a new machine, replace `100.108.78.9` with the new server's IP.
-
-**File 1 — `frontend/src/app/app.ts` (2 lines)**
-
-```typescript
-// Line 9 — Flask API base URL
-const API = 'http://{NEW_IP}:5000';
-
-// Line 60 — HLS video stream URL
-private hlsUrl = 'http://{NEW_IP}:18000/live/stream/index.m3u8';
-```
-
-**File 2 — `frontend/src/app/app.html` (2 lines)**
-
-```html
-<!-- Line 58 — drone push URL shown on screen (display only) -->
-<div>rtmp://{NEW_IP}:1935/live/stream</div>
-
-<!-- Line 124 — history log image URL -->
-[src]="'http://{NEW_IP}:5000' + r.image_url"
-```
-
-After editing, restart the Angular dev server (Terminal 3) — it will hot-reload automatically.
-
-**DJI drone push URL** → `rtmp://{NEW_IP}:1935/live/stream`
-
-> The RTMP server (`rtmp-server/`) uses `localhost` internally and does not need to change.
+Follow these steps in order. Takes ~30–60 minutes depending on download speed.
 
 ---
 
-## Prerequisites
+### Step 0 — System Dependencies
 
-- `models/best_mlp_transformer_v2.pth` exists
-- ChromaDB built: `python src/build_knowledge_db.py`
-- Ollama running: `ollama serve`
-
-## 3 Terminals
-
-**Terminal 1 — Flask API**
 ```bash
-conda activate spectral && python src/app.py
+# Ubuntu 20.04+ required. Install these first:
+sudo apt update
+sudo apt install -y git ffmpeg cifs-utils build-essential
+
+# Verify ffmpeg is at /usr/bin/ffmpeg (required by start_all.sh)
+which ffmpeg   # should print /usr/bin/ffmpeg
+```
+
+Install **Miniconda** (if not already installed):
+```bash
+wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+bash Miniconda3-latest-Linux-x86_64.sh
+# Restart terminal after install
+```
+
+Install **Node.js v18+**:
+```bash
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt install -y nodejs
+node --version   # should print v20.x.x
+```
+
+Install **NVIDIA driver + CUDA 12.x** (skip if already have GPU driver):
+```bash
+# Check current driver
+nvidia-smi
+# If missing, install nvidia-535 or newer from Ubuntu's additional drivers
+```
+
+---
+
+### Step 1 — Clone the Repository
+
+```bash
+git clone https://github.com/Xaibao/howard_paper.git
+cd howard_paper
+```
+
+---
+
+### Step 2 — Python Environment
+
+```bash
+conda create -n spectral python=3.10 -y
+conda activate spectral
+
+# PyTorch with CUDA 12.1
+pip install torch==2.5.1+cu121 torchvision==0.20.1+cu121 \
+  --index-url https://download.pytorch.org/whl/cu121
+
+# All other packages
+pip install flask==3.1.3 flask-cors==6.0.2 \
+  numpy==2.2.6 Pillow==12.2.0 scipy==1.15.3 \
+  scikit-learn==1.7.2 matplotlib==3.10.8 seaborn==0.13.2 \
+  langchain==1.2.15 langchain-community==0.4.1 langchain-huggingface==1.2.1 \
+  chromadb==1.5.7 sentence-transformers==5.4.0 \
+  flwr==1.30.0 transformers==5.5.3 requests==2.33.1
+```
+
+---
+
+### Step 3 — Node.js Dependencies
+
+```bash
+# Angular dashboard
+cd frontend && npm install && cd ..
+
+# RTMP server
+cd rtmp-server && npm install && cd ..
+
+# Angular CLI
+npm install -g @angular/cli
+```
+
+---
+
+### Step 4 — Change the Server IP
+
+The repo has `100.108.78.9` hardcoded in 4 places. Replace with your machine's IP.
+
+Get your IP first:
+```bash
+hostname -I | awk '{print $1}'
+```
+
+**Edit `frontend/src/app/app.ts`** — change 2 lines:
+```typescript
+// Line 9
+const API = 'http://{YOUR_IP}:5000';
+
+// Line 60
+private hlsUrl = 'http://{YOUR_IP}:18000/live/stream/index.m3u8';
+```
+
+**Edit `frontend/src/app/app.html`** — change 2 lines:
+```html
+<!-- Line 58 — display text only -->
+<div>rtmp://{YOUR_IP}:1935/live/stream</div>
+
+<!-- Line 124 — image src -->
+[src]="'http://{YOUR_IP}:5000' + r.image_url"
+```
+
+> DJI drone push URL after change: `rtmp://{YOUR_IP}:1935/live/stream`
+
+---
+
+### Step 5 — Build ChromaDB Knowledge Base (RAG)
+
+```bash
+conda activate spectral
+python src/build_knowledge_db.py
+# Output: src/fog_expert_db/ (~188 vectors, takes 1-2 min)
+```
+
+Run once only. Persists on disk.
+
+---
+
+### Step 6 — Install Ollama + Llama 3.1 (LLM)
+
+```bash
+curl -fsSL https://ollama.com/install.sh | sh
+ollama pull llama3.1
+# Downloads ~4.7 GB — takes a few minutes
+
+# Verify
+ollama run llama3.1 "hello"
+```
+
+---
+
+### Step 7 — Start the System (3 Terminals)
+
+Open 3 terminals in order:
+
+**Terminal 1 — Flask API (start this first)**
+```bash
+conda activate spectral
+cd howard_paper
+python src/app.py
 # Wait for: * Running on http://0.0.0.0:5000
 ```
 
-**Terminal 2 — RTMP Video**
+**Terminal 2 — RTMP Live Video**
 ```bash
+cd howard_paper
 bash rtmp-server/start_all.sh
 # Wait for: === 全部啟動完成 ===
 ```
 
 **Terminal 3 — Angular Dashboard**
 ```bash
-cd frontend && npx ng serve --host 0.0.0.0 --port 4200
+cd howard_paper/frontend
+npx ng serve --host 0.0.0.0 --port 4200
 # Wait for: Application bundle generation complete.
-# Open: http://{server-ip}:4200
 ```
+
+Open browser: **`http://{YOUR_IP}:4200`**
+
+---
+
+### Checklist — Before Opening Browser
+
+- [ ] `conda activate spectral` is active in Terminal 1
+- [ ] Flask shows `Running on http://0.0.0.0:5000`
+- [ ] RTMP shows `全部啟動完成`
+- [ ] Angular shows `Application bundle generation complete`
+- [ ] IP changed in `app.ts` and `app.html`
+- [ ] `src/fog_expert_db/` folder exists (ChromaDB built)
+- [ ] Ollama running: `ollama list` shows `llama3.1`
 
 ## API Endpoints
 

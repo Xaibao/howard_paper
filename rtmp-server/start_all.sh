@@ -1,5 +1,6 @@
 #!/bin/bash
-cd /home/t1204-3060/Howard/spectral_monitor/rtmp-server
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+cd "$SCRIPT_DIR"
 
 # 清掉所有相關 process
 kill -9 $(lsof -ti:1935) 2>/dev/null
@@ -24,10 +25,11 @@ sleep 3
   media/live/stream/index.m3u8 > /tmp/hls.log 2>&1 &
 echo "[2] ffmpeg HLS PID: $!"
 
-# 3. HTTP server serve HLS (port 12000)
-python3 - > /tmp/hls_http.log 2>&1 << 'PYEOF' &
-import http.server, socketserver, os
-os.chdir('/home/t1204-3060/Howard/spectral_monitor/rtmp-server/media')
+# 3. HTTP server serve HLS (port 18000)
+MEDIA_DIR="$SCRIPT_DIR/media"
+python3 - "$MEDIA_DIR" > /tmp/hls_http.log 2>&1 << 'PYEOF' &
+import http.server, socketserver, os, sys
+os.chdir(sys.argv[1])
 class H(http.server.SimpleHTTPRequestHandler):
     def end_headers(self):
         self.send_header('Access-Control-Allow-Origin','*')
@@ -42,5 +44,6 @@ echo "[3] HLS HTTP PID: $!"
 
 echo ""
 echo "=== 全部啟動完成 ==="
-echo "RTMP 推流：rtmp://100.108.78.9:1935/live/stream"
-echo "HLS  播放：http://100.108.78.9:18000/live/stream/index.m3u8"
+SERVER_IP=$(hostname -I | awk '{print $1}')
+echo "RTMP 推流：rtmp://$SERVER_IP:1935/live/stream"
+echo "HLS  播放：http://$SERVER_IP:18000/live/stream/index.m3u8"
