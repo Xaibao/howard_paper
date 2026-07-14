@@ -50,11 +50,17 @@ This paper introduces the **first AI-based robotic spectral monitoring system** 
 
 ### Key Contributions
 
-1. **Data augmentation under scarcity**: CGAN with multi-term spectral loss (slope + linear + reconstruction + high-band) generates physically consistent synthetic spectra from only 30 real samples per class.
-2. **Dual-modal fusion**: MLP branch (1280-dim spectrum) + Transformer branch (400×1280 BMP image) combined for robust classification.
-3. **Full-stack deployment**: Device → Edge → Cloud architecture with live dashboard, LLM expert analysis, and RAG-powered Q&A.
-4. **Interpretability**: LIME highlights spatial regions in BMP; Integrated Gradients identifies which wavelength bands (nm) drive each classification.
-5. **Privacy-preserving multi-site FL**: FedAvg convergence stable from Round 4/10; each site's raw data remains local.
+1. **Data augmentation under extreme scarcity**: Only 30 real NIR measurements per class are available — far below what deep learning typically requires. A custom 1D-Conv CGAN with a four-term spectral loss (slope + linear + reconstruction + high-band penalty) synthesizes 1,000 physically consistent training samples per class, making the downstream classifier viable.
+
+2. **Dual-modal MLP-Transformer fusion**: Simultaneously encodes the 1280-dim NIR spectrum through an MLP branch and the 400×1280 BMP visualization through a Transformer branch (patch-based Conv2d + 3-layer TransformerEncoder), then concatenates the two 128-dim feature vectors for final classification. Outperforms single-modal baselines.
+
+3. **Real-time edge inference without cloud dependency**: The trained MLP-Transformer runs on a Jetson Orin Nano and produces a prediction in under 1 second — critical for disaster response scenarios where network connectivity may be unavailable or unreliable.
+
+4. **Privacy-preserving multi-site Federated Learning**: Using the Flower (flwr) framework with FedAvg aggregation, multiple edge devices independently train on their local water samples and only upload model weight deltas — raw water quality data never leaves the sampling site. In the paper's experiment, the global model converged stably from Round 4 of 10, with accuracy holding at 100% on local validation data (loss 0.413 → 0.393).
+
+5. **Explainable AI (XAI) for domain trust**: Two complementary XAI methods are applied. LIME segments the BMP image and identifies which spatial regions influence the prediction. Integrated Gradients traces which wavelength bands (300–1100 nm) are most responsible for each class decision — confirming, for example, that palm oil predictions incorrectly activate water-correlated bands (r = 0.991), directly explaining the 32% palm oil accuracy in the Discussion.
+
+6. **End-to-end cloud dashboard with LLM expert analysis**: Flask API + Angular dashboard + RTMP live video feed, extended with RAG-powered Q&A (ChromaDB, 188 vectors, 11 domain documents) and automatic pollution analysis report generation (Ollama Llama 3.1, English/Chinese auto-detect).
 
 ### Use Cases
 
@@ -344,20 +350,88 @@ python src/make_fl_figure.py
 
 All figures saved to `paper_figures/` (PNG + PDF).
 
-## Step 5 — Federated Learning (Optional)
+---
 
-Simulates multi-site learning without sharing raw data.
+## Step 6 — Federated Learning
+
+### Why FL in This System?
+
+In real deployment, multiple autonomous robots operate at **different river sites** (upstream factory outflow, city waterway, estuary). Each site collects water samples that may reflect local pollution characteristics (seasonal variation, industrial mix). Simply centralizing all raw water quality data is problematic:
+
+- **Privacy**: Raw spectral data from a factory site may reveal proprietary production information.
+- **Bandwidth**: Continuously uploading large BMP + txt files from remote sites is impractical.
+- **Regulation**: Environmental monitoring data may be subject to jurisdiction-specific data residency requirements.
+
+**Federated Learning solves all three**: each edge device trains locally on its own data and only sends weight updates to the cloud server. The server aggregates them into a global model (FedAvg) and distributes it back — **no raw data ever leaves the site**.
+
+### FL Architecture
+
+```
+Cloud Server (Flask + Flower, port 8080)
+  │  1. Broadcast global model weights
+  │
+  ├──→ Edge Device A (Jetson, River Site 1)
+  │       local train 5 epochs on site-A samples
+  │       upload Δweights only
+  │
+  ├──→ Edge Device B (Jetson, River Site 2)
+  │       local train 5 epochs on site-B samples
+  │       upload Δweights only
+  │
+  └──→ ... (scalable to N sites)
+         │
+         ▼
+  FedAvg: w_global = Σ (n_i / n_total) × w_i
+         │
+         ▼
+  Updated global model → broadcast to all sites → next round
+```
+
+### How to Run
 
 ```bash
-# Terminal 1: Start FL Server
+# Terminal 1 — FL Server (Cloud, port 8080)
+conda activate spectral
 python src/federated/fl_server.py
 
-# Terminal 2: Start FL Client (simulate edge device)
+# Terminal 2 — FL Client (Edge or local simulation)
+conda activate spectral
 python src/federated/fl_client.py
 ```
 
-FL runs for 10 rounds, 5 epochs each. Aggregation: FedAvg.
-Results saved to `outputs/fl_training_log.txt`.
+**FL Server** (`fl_server.py`): Uses Flower's `FedAvg` strategy, 10 rounds, aggregates weight updates from all connected clients each round.
+
+**FL Client** (`fl_client.py`): Loads local training data, trains `TransformerFusionModel` for 5 epochs per round, reports metrics to server.
+
+**FL Model** (`fl_model.py`): Defines the same `TransformerFusionModel` architecture as the main classifier — ensures server and client use identical model structure.
+
+### Experimental Results (Paper)
+
+| Round | Accuracy | Loss |
+|:-----:|:--------:|:----:|
+| 1 | 100.00% | 0.413 |
+| 2 | 100.00% | 0.405 |
+| 3 | 98.11% | 0.404 |
+| 4 | 100.00% | 0.401 |
+| 5–8 | 100.00% | 0.397–0.401 |
+| 9 | 100.00% | **0.393** (lowest) |
+| 10 | 100.00% | 0.399 |
+
+- **Setup**: 1 simulated edge client, 261 local samples (208 train / 53 validation), 5 local epochs per round
+- **Convergence**: Stable from Round 4; minor dip at Round 3 recovered immediately
+- **Total training time**: 435.89 seconds for 10 rounds
+- **Aggregation**: FedAvg (weighted by local dataset size)
+
+Results log: `outputs/fl_training_log.txt`
+Convergence figure: `paper_figures/fl_convergence_curve.pdf` (dual-axis: Accuracy + Loss)
+
+### Generate FL Convergence Figure
+
+```bash
+python src/make_fl_figure.py
+```
+
+Output: `paper_figures/fl_convergence_curve.pdf` and `.png` (300 DPI, dual Y-axis).
 
 ---
 
