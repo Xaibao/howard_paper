@@ -20,57 +20,185 @@ This repository contains the full implementation for reproducing the paper, incl
 
 ## Research Value & Motivation
 
-### Background — Why Spectral Monitoring?
+### Background — The FOG Water Pollution Crisis
 
-On **November 27, 2024**, a major FOG (Fats, Oils, and Grease) contamination event occurred in the Keelung River, Taiwan, affecting a 3.2 km stretch. Emergency response was delayed by over 6 hours because **conventional drone surveillance — relying entirely on visual cameras — failed to detect the colorless, transparent FOG pollutants on the water surface**.
+#### Triggering Event: Keelung River, November 27, 2024
 
-This exposes a fundamental gap in current water quality disaster response: visual methods cannot distinguish transparent oil films from clean water.
+On **November 27, 2024**, a major FOG (Fats, Oils, and Grease) contamination event struck the Keelung River (基隆河), Taiwan, spreading across a **3.2 km stretch** of waterway. Emergency environmental response was delayed by **over 6 hours** because the deployed drone surveillance team — relying entirely on RGB cameras — **failed to visually identify any contamination**. The FOG pollutants were colorless and transparent on the water surface, indistinguishable from clean water to the naked eye and to RGB imaging systems.
 
-### What This Research Proposes
+This incident directly exposed a critical capability gap in existing water quality disaster response systems.
 
-This paper introduces the **first AI-based robotic spectral monitoring system** that replaces visual detection with near-infrared (NIR) spectroscopy, enabling rapid identification of invisible FOG pollutants in real time.
+#### Why FOG Contamination is Uniquely Dangerous
 
-| Problem | This Work's Solution |
-|---------|---------------------|
-| Transparent FOG undetectable visually | NIR spectrum identifies molecular signatures |
-| Limited real measurement data (30/class) | CGAN synthesizes 1,000 training samples/class |
-| Slow cloud-only inference | MLP-Transformer on Jetson Edge: < 1 second |
-| Multi-site data privacy concerns | Federated Learning — raw data never leaves the site |
-| Black-box AI | XAI (LIME + Integrated Gradients) explains every prediction |
+FOG pollutants form a surface film on water that:
+- **Blocks oxygen exchange** between air and water, rapidly depleting dissolved oxygen and suffocating aquatic life
+- **Blocks sunlight penetration**, suppressing photosynthesis of submerged aquatic vegetation
+- **Clogs water treatment infrastructure** — pump intakes, filtration membranes, and pipes
+- **Carries persistent toxic compounds**: motor oil contains polycyclic aromatic hydrocarbons (PAHs), which are carcinogenic and persist in sediment for years
+- **Triggers secondary eutrophication**: biological FOG (lard, palm oil, olive oil) provides a massive nutrient load as it degrades, causing algal blooms
+
+Despite these severe impacts, **no existing real-time robotic monitoring system** is capable of detecting transparent FOG pollutants from unmanned aerial or aquatic platforms.
+
+---
+
+### Why These Technologies Were Chosen
+
+#### 1. NIR Spectroscopy — Not RGB Cameras
+
+RGB cameras record visible light reflectance (400–700 nm). Transparent liquids at low concentration reflect essentially the same spectrum as clean water — there is **no visual signature** for FOG at the surface.
+
+Near-infrared (NIR) spectroscopy (300–1100 nm) measures **molecular absorption fingerprints**: C-H bonds in hydrocarbon chains (oils) absorb NIR radiation at characteristic wavelengths that water does not. Even colorless, transparent oil films produce a **distinct, class-specific spectral signature** in NIR.
+
+This is why the MSR-001 spectrometer was selected:
+- Range: 300–1100 nm, 1280 spectral bands (resolution ~0.625 nm/band)
+- Non-contact measurement: mounted on robot/drone, no water surface contact required
+- Output: raw spectrum + BMP visualization simultaneously
+- Savitzky-Golay (SG) filter applied on-device to reduce shot noise while preserving spectral peaks
+
+#### 2. CGAN — Not Simple Data Augmentation
+
+Field measurement of water pollutants is constrained by: equipment availability, personnel safety, seasonal variation, regulatory permits for intentional contamination. This paper obtained only **30 real NIR measurements per class** — far below the thousands typically required for deep learning.
+
+Simple augmentation approaches (random noise, time-shift, interpolation) fail for spectral data because they do not preserve the **physical spectral characteristics** that make each class distinguishable. Standard GAN training on 30 samples causes **mode collapse** — the generator collapses all outputs to the mean spectral shape.
+
+The custom CGAN in this paper addresses this with a **four-term spectral loss**:
+
+| Loss Term | Weight | Purpose |
+|-----------|:------:|---------|
+| `slope_loss` | 1.0 | Preserve the spectral slope profile across wavelength bands |
+| `linear_loss` | 1.0 | Maintain linear consistency between adjacent bands |
+| `recon_loss` | 10.0 | Force generated spectrum to reconstruct real training samples |
+| `high_band_loss` | 12.0 | Prevent collapse of high-intensity absorption bands (> 0.6 normalized) |
+
+The high weight on `recon_loss` and `high_band_loss` compensates for the weak adversarial signal from only 30 real discriminator samples, enforcing physical plausibility even when the discriminator cannot effectively distinguish real from fake.
+
+**CGAN Quality Validation** — mean absolute difference between generated and real spectra across all 1280 bands (post-correction):
+
+| Class | Mean Difference | Corrections Applied |
+|-------|:--------------:|---------------------|
+| Motor Oil | 0.86 | None |
+| Olive Oil | 0.95 | None |
+| Palm Oil | 1.72 | Bands 477–494 manually corrected (195 → 174; real mean = 176.7) |
+| Lard | 2.81 | Bands 237–241 manually corrected (31 → 203; real mean = 203.6) |
+| Water | 4.91 | None |
+
+#### 3. MLP-Transformer Fusion — Not Single-Modal
+
+The MSR-001 produces two simultaneous outputs per measurement:
+- A **1D spectrum** (`_sg.txt`): 1280 float values representing absorption intensity at each wavelength
+- A **BMP image**: 400×1280 pixel spectral visualization (color-mapped intensity gradient)
+
+Each modality carries **different discriminative information**:
+- The 1D spectrum captures absolute absorption amplitude at each wavelength — critical for inter-class differentiation (motor oil has much higher overall intensity than water)
+- The BMP image captures **spatial gradient patterns** in the spectral visualization — visible as band structures, color transitions, and texture differences that the 1D values alone do not express
+
+Using only the spectrum (MLP branch) misses the spatial patterns. Using only the image (Transformer branch) loses the precise numeric amplitude relationships. The fusion concatenates both 128-dim representations for final classification.
+
+#### 4. Jetson Orin Nano — Not Cloud-Only Inference
+
+In a real disaster scenario, a robot deployed at a remote river site may have **no reliable internet connectivity** — cell networks are often disrupted during disasters, and remote river areas have limited coverage. Cloud-dependent inference would fail at exactly the moment it is most needed.
+
+The Jetson Orin Nano provides **on-device GPU inference** (< 1 second per sample) with no network dependency. Results are sent to the cloud when connectivity is available, but identification does not wait.
+
+#### 5. Federated Learning — Not Centralized Training
+
+In deployment across multiple sites (multiple rivers, multiple factory outflows), raw spectral data from each site should **not** be centralized because:
+- **Data privacy**: Spectral signatures from a factory discharge site may reveal proprietary production process information
+- **Bandwidth**: BMP + txt files from dozens of sensors would require substantial continuous upload bandwidth
+- **Regulation**: Environmental monitoring data in some jurisdictions must remain within local administrative boundaries
+
+With FL (Flower framework, FedAvg), each Jetson trains locally on its site's data and uploads only gradient weight updates. The cloud aggregates a stronger global model without ever seeing raw measurements.
+
+#### 6. LLM + RAG — Not Static Rule-Based Alerts
+
+When a pollution event is detected, responders need more than a class label — they need to know **why it matters, how it spreads, what to deploy for containment**, and what regulatory thresholds apply. Static rule-based alert systems cannot adapt to the combination of detected class + local context.
+
+RAG (Retrieval-Augmented Generation) grounds the LLM response in specific domain documents (FOG pollution literature, MSR-001 specs, Taiwan environmental regulations, treatment method references) so that the generated expert report is **anchored in cited knowledge** rather than hallucinated. ChromaDB provides fast vector similarity search across 188 indexed chunks to retrieve the top-3 most relevant passages for each query.
+
+#### 7. XAI — Not Black Box
+
+Environmental agencies and regulatory bodies require **justification** for automated detection results before taking costly emergency action. A black-box classifier that outputs "Motor Oil, 93.1%" will not be trusted without explanation.
+
+Two XAI methods are applied:
+- **LIME** (Local Interpretable Model-agnostic Explanations): segments the BMP image into semantic regions and perturbs them to identify which spatial areas are driving the prediction
+- **Integrated Gradients (IG)**: computes the path integral of gradients from a zero-baseline to the real input, identifying which of the 1280 wavelength bands most contributed to the classification
+
+IG results directly support the Discussion: palm oil's low accuracy (32%) is explained by IG showing the model activates **water-correlated wavelength bands** when classifying palm oil — consistent with the spectral correlation coefficient r = 0.991 between palm oil and water.
+
+---
 
 ### Target Pollutants (5 Classes)
 
-| Class | Chinese | Pollution Level | Spectral Characteristic |
-|-------|---------|:--------------:|------------------------|
-| Motor Oil | 機油 | Level 3 — Severe | High intensity, broad absorption band |
-| Olive Oil | 橄欖油 | Level 2 — Moderate | Mid intensity, specific band peaks |
-| Palm Oil | 棕櫚油 | Level 2 — Moderate | Highly correlated with water (r = 0.991) |
-| Lard | 豬油 | Level 2 — Moderate | Correlated with olive oil (r = 0.965) |
-| Water | 清水 | Level 0 — Normal | Baseline reference |
+| Class | Chinese | Pollution Level | Spectral Characteristic | Ecological Risk |
+|-------|---------|:--------------:|------------------------|----------------|
+| Motor Oil | 機油 | **Level 3 — Severe** | High intensity, broad NIR absorption | PAH contamination, long-term sediment persistence |
+| Olive Oil | 橄欖油 | Level 2 — Moderate | Mid intensity, characteristic band peaks | Eutrophication, dissolved oxygen depletion |
+| Palm Oil | 棕櫚油 | Level 2 — Moderate | Very similar to water (r = 0.991) — hardest to classify | Algal bloom trigger when biodegrading |
+| Lard | 豬油 | Level 2 — Moderate | Correlated with olive oil (r = 0.965) | Biological oxygen demand, aquatic suffocation |
+| Water | 清水 | **Level 0 — Normal** | Baseline reference spectrum | — |
+
+### Deployment Scenario — How the Robot System Works
+
+The full system operates as a **5-step autonomous patrol loop**:
+
+```
+Step 1: Robot (RPi + MSR-001) patrols river autonomously, stops at sampling point
+         │
+Step 2: MSR-001 illuminates water surface, records 1280-band NIR spectrum
+         Simultaneously generates BMP spectral visualization
+         Savitzky-Golay filter removes shot noise on-device
+         │
+Step 3: Jetson Orin Nano receives spectrum + BMP via local network
+         MLP-Transformer inference: < 1 second
+         Output: class label + confidence % + pollution level (0/2/3)
+         │
+Step 4: Result uploaded to Cloud Flask API (/api/report)
+         LLM + RAG automatically generates 4-section expert analysis
+         Angular dashboard updates in real time for remote responders
+         │
+Step 5: Responders view: live video + spectral waveform + detection result +
+         LLM pollution analysis (source tracing, ecological impact,
+         containment recommendations, regulatory context)
+         FL Client: local Jetson trains on new sample → uploads Δweights
+```
 
 ### Key Contributions
 
-1. **Data augmentation under extreme scarcity**: Only 30 real NIR measurements per class are available — far below what deep learning typically requires. A custom 1D-Conv CGAN with a four-term spectral loss (slope + linear + reconstruction + high-band penalty) synthesizes 1,000 physically consistent training samples per class, making the downstream classifier viable.
+1. **Data augmentation under extreme scarcity**: Only 30 real NIR measurements per class are available — far below what deep learning requires. A 1D-Conv CGAN with a four-term physics-constrained spectral loss (slope, linear, reconstruction ×10, high-band ×12) synthesizes 1,000 training samples per class. Post-generation quality validation shows mean absolute band differences as low as 0.86 (motor oil) after manual correction of systematic errors in two classes.
 
-2. **Dual-modal MLP-Transformer fusion**: Simultaneously encodes the 1280-dim NIR spectrum through an MLP branch and the 400×1280 BMP visualization through a Transformer branch (patch-based Conv2d + 3-layer TransformerEncoder), then concatenates the two 128-dim feature vectors for final classification. Outperforms single-modal baselines.
+2. **Dual-modal MLP-Transformer fusion**: Simultaneously encodes the 1280-dim NIR spectrum (MLP branch: Linear 1280→512→128) and the 400×1280 BMP visualization (Transformer branch: Conv2d patch extraction → 320 patches → 3-layer TransformerEncoder nhead=8 → 128-dim), concatenates to 256-dim, classifies into 5 classes. Each modality provides complementary discriminative information that the other alone cannot capture.
 
-3. **Real-time edge inference without cloud dependency**: The trained MLP-Transformer runs on a Jetson Orin Nano and produces a prediction in under 1 second — critical for disaster response scenarios where network connectivity may be unavailable or unreliable.
+3. **Real-time edge inference independent of network**: The trained MLP-Transformer runs on Jetson Orin Nano at < 1 second per sample. In disaster scenarios where cloud connectivity fails, field identification continues uninterrupted. Results are buffered locally and synced when connectivity resumes.
 
-4. **Privacy-preserving multi-site Federated Learning**: Using the Flower (flwr) framework with FedAvg aggregation, multiple edge devices independently train on their local water samples and only upload model weight deltas — raw water quality data never leaves the sampling site. In the paper's experiment, the global model converged stably from Round 4 of 10, with accuracy holding at 100% on local validation data (loss 0.413 → 0.393).
+4. **Privacy-preserving multi-site Federated Learning**: Flower (flwr) framework with FedAvg — each edge device trains 5 local epochs per round on its own water samples, uploads only gradient weight deltas. Raw spectral data never leaves the measurement site. In the paper's 10-round experiment, the global model converged stably from Round 4, achieving 100% local validation accuracy with loss decreasing from 0.413 to 0.393.
 
-5. **Explainable AI (XAI) for domain trust**: Two complementary XAI methods are applied. LIME segments the BMP image and identifies which spatial regions influence the prediction. Integrated Gradients traces which wavelength bands (300–1100 nm) are most responsible for each class decision — confirming, for example, that palm oil predictions incorrectly activate water-correlated bands (r = 0.991), directly explaining the 32% palm oil accuracy in the Discussion.
+5. **Dual XAI for regulatory interpretability**: LIME (image-region attribution) + Integrated Gradients (wavelength-band attribution) provide two independent explanations per prediction. IG results quantitatively confirm the Discussion's claim about palm oil misclassification: the model relies on water-correlated wavelength bands for palm oil, consistent with r = 0.991 spectral correlation.
 
-6. **End-to-end cloud dashboard with LLM expert analysis**: Flask API + Angular dashboard + RTMP live video feed, extended with RAG-powered Q&A (ChromaDB, 188 vectors, 11 domain documents) and automatic pollution analysis report generation (Ollama Llama 3.1, English/Chinese auto-detect).
+6. **End-to-end cloud dashboard with domain-grounded LLM**: Flask API + Angular dashboard + RTMP/HLS live video, with RAG (ChromaDB, 188 vectors, 11 domain documents including Taiwan environmental regulations) grounding Llama 3.1 responses in cited literature. English/Chinese bilingual auto-detection. Supports 3 independent agent streams (Drone / Boat / Ground).
+
+### Ablation Study — Design Decisions That Mattered
+
+Each architectural choice was validated through incremental experiments on a synthetic held-out test set:
+
+| Design Change | Synthetic Test Acc | Key Insight |
+|--------------|:-----------------:|-------------|
+| Baseline (with EarlyConv layer) | 52% | EarlyConv overfit to generated image texture; real BMP textures differ |
+| Remove EarlyConv | 61% | Transformer branch generalizes better without early spatial bias |
+| Add CGAN reconstruction loss (×10) | 75.86% | Reconstruction loss compensates for weak adversarial signal (30 samples) |
+| Change normalization: MinMax → ÷255 | **87.74%** | ÷255 preserves inter-class amplitude differences; MinMax collapsed them |
+| **Final model on real test set** | — | **83.68%** (epoch 100), best checkpoint: 94.40% |
+
+> The normalization change from MinMax to ÷255 produced the single largest accuracy jump (+11.88%). MinMax normalization scaled each spectrum independently to [0,1], erasing the fact that motor oil has much higher absolute absorption than water — a key discriminative feature. Fixed-scale ÷255 preserves this inter-class amplitude relationship.
 
 ### Use Cases
 
 | Scenario | How This System Applies |
 |----------|------------------------|
-| **River emergency response** | Autonomous robot patrols river after an incident report; edge inference identifies pollutant type and level within 1 second; cloud dashboard alerts responders with treatment recommendations |
-| **Factory discharge monitoring** | Deployed at industrial outflow points; FL allows multiple factories to share a global model without exposing proprietary data |
-| **Remote or disconnected areas** | Edge inference runs offline — no internet required for real-time identification |
-| **Environmental regulatory compliance** | Continuous spectral logging with timestamped records provides auditable evidence for regulators |
-| **Multi-river simultaneous monitoring** | FL aggregates learnings from different river sites, improving accuracy for rare pollutant events |
+| **River emergency response** | Robot dispatched immediately upon FOG spill report; edge inference identifies pollutant class and severity (Level 0/2/3) within 1 second per sample; cloud dashboard delivers LLM expert report to responders within minutes, including containment recommendations and regulatory thresholds |
+| **Factory discharge monitoring** | Robots deployed continuously at industrial outflow points; FL allows multiple factories to contribute to a shared model without exposing proprietary production data to competitors or regulators |
+| **Remote / disconnected areas** | Edge inference runs fully offline — flash floods and disaster conditions that disrupt cellular networks do not impair real-time identification |
+| **Environmental regulatory compliance** | Every detection is timestamped and logged with spectrum + BMP evidence; provides auditable chain of custody for regulatory enforcement |
+| **Multi-river collaborative monitoring** | FL aggregates learnings across geographically distributed river sites — a pollution pattern encountered at one site improves recognition across all deployed nodes without data sharing |
 
 ---
 
@@ -193,7 +321,7 @@ Each sample consists of two files:
 
 ## Step 1 — CGAN: Generate Synthetic Spectrum Data (txt)
 
-Trains a 1D-Conv CGAN for each class. Generates 1,000 synthetic `_sg.txt` files per class.
+Trains a 1D-Conv CGAN independently for each of the 5 classes. Each class CGAN takes the 30 real `_sg.txt` spectra as training data and generates 1,000 synthetic spectra that preserve the physical characteristics of that class.
 
 ```bash
 conda activate spectral
@@ -203,11 +331,30 @@ PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True python src/CGAN_curve.py
 
 Output: `data/dataset/train/{class}/txt/generated_{class}_*.txt`
 
-**CGAN Loss:**
-- `slope_loss` — preserves spectral slope
-- `1.0 × linear_loss` — linear consistency
-- `10.0 × recon_loss` — reconstruction accuracy
-- `12.0 × high_band_loss` — prevents high-intensity band collapse
+**Generator Architecture:** Noise(100-dim) + Condition(1280-dim) → Linear(1380→1024) → ReLU → Linear(1024→1280) → Sigmoid → generated spectrum
+
+**Discriminator Architecture:** spectrum(1280-dim) → Conv1D(1→16, k=15) → Conv1D(16→32, k=15) → Linear → real/fake
+
+**Four-Term Spectral Loss (why each term exists):**
+
+| Term | Weight | What it Enforces |
+|------|:------:|-----------------|
+| `slope_loss` | 1.0 | Generated spectrum must follow the same wavelength-by-wavelength slope trend as real spectra |
+| `linear_loss` | 1.0 | Linear consistency — prevents abrupt discontinuities between adjacent bands |
+| `recon_loss` | **10.0** | Generator must be able to reconstruct real training samples — compensates for weak adversarial signal from only 30 real samples |
+| `high_band_loss` | **12.0** | Penalizes collapse of high-intensity bands (normalized value > 0.6) — prevents the generator from defaulting to a flat, low-energy output |
+
+**CGAN Quality Validation (paper):**
+
+| Class | Mean Abs. Difference | Correction Required |
+|-------|:-------------------:|---------------------|
+| Motor Oil | 0.86 | None |
+| Olive Oil | 0.95 | None |
+| Palm Oil | 1.72 | Bands 477–494 corrected: generated 195 → target 174 (real mean = 176.7) |
+| Lard | 2.81 | Bands 237–241 corrected: generated 31 → target 203 (real mean = 203.6) |
+| Water | 4.91 | None |
+
+> Lard showed the largest systematic error — bands 237–241 were near-zero in generated spectra but should be ~203. This was caused by the high-band loss not covering the mid-range. Manual correction was applied post-generation.
 
 ## Step 2 — CGAN: Generate Synthetic Spectral Images (bmp)
 
@@ -248,10 +395,33 @@ Spectrum (1280-dim txt)          Image (400×1280 BMP)
 - Optimizer: Adam (lr=5e-5, weight_decay=1e-4)
 - Scheduler: CosineAnnealingLR (T_max=100)
 - Epochs: 100 | Batch size: 32
+- Data augmentation: Gaussian noise (σ=0.02) on spectrum + 5% random sample corruption
+
+**Normalization (critical design choice):**
+```python
+# Spectrum: fixed-scale division — preserves inter-class amplitude differences
+txt = txt / 255.0   # NOT MinMax — MinMax erases amplitude differences between classes
+
+# Image: standard ImageNet-style
+Normalize(mean=(0.5,0.5,0.5), std=(0.5,0.5,0.5))
+```
+
+> Switching from MinMax to ÷255 was the single most impactful design change, producing a +11.88% accuracy improvement. MinMax normalizes each sample independently, erasing the fact that motor oil has much higher NIR absorption than water — a key class-discriminating feature.
 
 Output:
-- `models/best_mlp_transformer_v2.pth` — best validation accuracy checkpoint
-- `models/mlp_transformer_v2.pth` — final epoch 100 model
+- `models/best_mlp_transformer_v2.pth` — best real-test accuracy checkpoint (epoch ~70, 94.40%)
+- `models/mlp_transformer_v2.pth` — final epoch 100 model (83.68% on real test)
+
+**Final Results on Real Test Set (1,250 samples, 250/class):**
+
+| Class | Correct / Total | Accuracy | Note |
+|-------|:--------------:|:--------:|------|
+| Motor Oil | 242 / 250 | **96.8%** | |
+| Olive Oil | 243 / 251 | **96.8%** | |
+| Lard | 240 / 253 | **94.9%** | |
+| Water | 239 / 242 | **98.8%** | |
+| Palm Oil | 82 / 256 | 32.0% | Confused with Water (r=0.991) — see Discussion |
+| **Overall** | | **83.68%** | Epoch 100 model |
 
 ## Step 4 — Build RAG Knowledge Base (LLM + RAG)
 
