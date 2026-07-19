@@ -243,15 +243,34 @@ conda activate spectral && python src/federated/fl_client.py
 
 **FL flow:** Server broadcasts global weights → each client trains 5 local epochs → uploads Δweights → FedAvg aggregation → repeat for 10 rounds
 
-**Experimental results (10 rounds, FedAvg):**
+**Non-IID data split (by deployment scenario):**
 
-| Round | Accuracy | Loss |
-|:-----:|:--------:|:----:|
-| 1 | 100.00% | 0.413 |
-| 3 | 98.11% | 0.404 |
-| 4–10 | **100.00%** | 0.393–0.401 |
+| Client | Scenario | Classes | Samples |
+|--------|----------|---------|---------|
+| Drone (無人機) | Aerial surveillance | motor_oil + water | 82 |
+| Boat (船隻) | On-water monitoring | olive_oil + lard | 87 |
+| Ground (陸地) | Shore-based station | palm_oil | 40 |
 
-- 261 local samples (208 train / 53 val) · 5 epochs/round · 435.89 sec total
+**Experimental results (10 rounds, FedAvg, 3 clients):**
+
+| Round | Aggregated Accuracy | Loss |
+|:-----:|:------------------:|:----:|
+| 1 | 84.91% | 0.6677 |
+| 2 | **96.23%** | 0.6118 |
+| 3 | 81.13% | 0.7815 |
+| 4 | **98.11%** | 0.5969 |
+| 5–10 | 81–85% | 0.66–0.78 |
+
+**Per-client local accuracy (final round):**
+
+| Client | Local Accuracy | Note |
+|--------|:--------------:|------|
+| Drone | **100%** | motor_oil + water spectrally distinct |
+| Boat | **100%** | olive_oil + lard separable |
+| Ground | 0% | palm_oil (r=0.991 with water) — global model predicts as water; validates Discussion |
+
+- 5 local epochs/round · FedAvg weighted by sample count
+- Aggregated accuracy oscillates due to non-IID distribution — classic FL challenge
 - Convergence figure: `paper_figures/fl_convergence_curve.pdf`
 
 ---

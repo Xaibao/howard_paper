@@ -1,11 +1,22 @@
-=== FL Training Log ===
-Round 01 | Loss: 0.4130 | Accuracy: 1.0000
-Round 02 | Loss: 0.4023 | Accuracy: 1.0000
-Round 03 | Loss: 0.4093 | Accuracy: 0.9811
-Round 04 | Loss: 0.4040 | Accuracy: 1.0000
-Round 05 | Loss: 0.3999 | Accuracy: 1.0000
-Round 06 | Loss: 0.3950 | Accuracy: 1.0000
-Round 07 | Loss: 0.3996 | Accuracy: 1.0000
-Round 08 | Loss: 0.3952 | Accuracy: 1.0000
-Round 09 | Loss: 0.3929 | Accuracy: 1.0000
-Round 10 | Loss: 0.3988 | Accuracy: 1.0000
+=== FL Training Log — 3-Client Non-IID Simulation ===
+Setup:
+  Drone  (無人機): motor_oil + water   | 82 samples (66 train / 16 val)
+  Boat   (船隻):   olive_oil + lard    | 87 samples (70 train / 17 val)
+  Ground (陸地):   palm_oil            | 40 samples (32 train / 8 val)
+  Aggregation: FedAvg | Rounds: 10 | Local epochs: 5
+
+Round 01 | Loss: 0.6677 | Accuracy: 0.8491
+Round 02 | Loss: 0.6118 | Accuracy: 0.9623
+Round 03 | Loss: 0.7815 | Accuracy: 0.8113
+Round 04 | Loss: 0.5969 | Accuracy: 0.9811
+Round 05 | Loss: 0.7174 | Accuracy: 0.8113
+Round 06 | Loss: 0.6645 | Accuracy: 0.8491
+Round 07 | Loss: 0.7613 | Accuracy: 0.8113
+Round 08 | Loss: 0.7195 | Accuracy: 0.8113
+Round 09 | Loss: 0.6702 | Accuracy: 0.8113
+Round 10 | Loss: 0.6800 | Accuracy: 0.8113
+
+Per-client local validation accuracy (final round):
+  Drone:  100.00%  (motor_oil + water — spectrally distinct, easy to separate)
+  Boat:   100.00%  (olive_oil + lard — different absorption profiles)
+  Ground:   0.00%  (palm_oil — r=0.991 with water, global model predicts as water)

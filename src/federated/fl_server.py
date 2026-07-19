@@ -106,9 +106,9 @@ def main():
     strategy = SaveModelStrategy(
         fraction_fit=1.0,
         fraction_evaluate=1.0,
-        min_fit_clients=1,
-        min_evaluate_clients=1,
-        min_available_clients=1,
+        min_fit_clients=3,
+        min_evaluate_clients=3,
+        min_available_clients=3,
         initial_parameters=get_initial_parameters(),
         fit_metrics_aggregation_fn=fit_metrics_aggregation,
         evaluate_metrics_aggregation_fn=evaluate_metrics_aggregation,
