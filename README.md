@@ -45,7 +45,7 @@ This paper proposes an AI-based robotic spectral monitoring system using **near-
 | **Overall accuracy** (epoch 100) | **83.68%** |
 | Best checkpoint accuracy | 94.40% (epoch ~70) |
 | Edge inference time | < 1 second (Jetson Orin Nano) |
-| FL convergence | Stable 100% from Round 4 / 10 rounds |
+| FL convergence | 100% from Round 2 / 10 rounds (3 clients, balanced 5-class) |
 
 ### Ablation Study
 
@@ -243,35 +243,47 @@ conda activate spectral && python src/federated/fl_client.py
 
 **FL flow:** Server broadcasts global weights → each client trains 5 local epochs → uploads Δweights → FedAvg aggregation → repeat for 10 rounds
 
-**Non-IID data split (by deployment scenario):**
+**Balanced data split (all 5 classes per client, round-robin):**
 
 | Client | Scenario | Classes | Samples |
 |--------|----------|---------|---------|
-| Drone (無人機) | Aerial surveillance | motor_oil + water | 82 |
-| Boat (船隻) | On-water monitoring | olive_oil + lard | 87 |
-| Ground (陸地) | Shore-based station | palm_oil | 40 |
+| Drone (無人機) | Aerial surveillance | motor_oil + olive_oil + palm_oil + lard + water | 89 |
+| Boat (船隻) | On-water monitoring | motor_oil + olive_oil + palm_oil + lard + water | 87 |
+| Ground (陸地) | Shore-based station | motor_oil + olive_oil + palm_oil + lard + water | 85 |
 
-**Experimental results (10 rounds, FedAvg, 3 clients):**
+Data in `data/fl_split/{drone,boat,ground}/` — run `--data-dir data/fl_split/<client>` to use.
+
+**Experimental results (10 rounds, FedAvg, 3 clients, balanced):**
 
 | Round | Aggregated Accuracy | Loss |
 |:-----:|:------------------:|:----:|
-| 1 | 84.91% | 0.6677 |
-| 2 | **96.23%** | 0.6118 |
-| 3 | 81.13% | 0.7815 |
-| 4 | **98.11%** | 0.5969 |
-| 5–10 | 81–85% | 0.66–0.78 |
+| 1 | 98.11% | 0.4479 |
+| 2 | **100.00%** | 0.4152 |
+| 3–10 | **100.00%** | 0.394–0.401 |
 
-**Per-client local accuracy (final round):**
+**Per-client local accuracy (Round 2 onwards):**
 
 | Client | Local Accuracy | Note |
 |--------|:--------------:|------|
-| Drone | **100%** | motor_oil + water spectrally distinct |
-| Boat | **100%** | olive_oil + lard separable |
-| Ground | 0% | palm_oil (r=0.991 with water) — global model predicts as water; validates Discussion |
+| Drone | **100%** | All 5 classes covered |
+| Boat | **100%** | All 5 classes covered |
+| Ground | **100%** | All 5 classes covered |
 
 - 5 local epochs/round · FedAvg weighted by sample count
-- Aggregated accuracy oscillates due to non-IID distribution — classic FL challenge
+- Converges to 100% by Round 2 — balanced IID distribution eliminates oscillation
 - Convergence figure: `paper_figures/fl_convergence_curve.pdf`
+
+<details>
+<summary>Non-IID reference experiment (3 scenario-specific clients)</summary>
+
+| Client | Classes | Samples | Final Accuracy |
+|--------|---------|---------|:--------------:|
+| Drone | motor_oil + water | 82 | 100% |
+| Boat | olive_oil + lard | 87 | 100% |
+| Ground | palm_oil only | 40 | 0% |
+
+Global accuracy oscillated 81–98% over 10 rounds; Ground client stuck at 0% because palm_oil (r=0.991 with water) causes the global model to predict water — this validates the Discussion's spectral similarity finding.
+</details>
 
 ---
 

@@ -323,13 +323,19 @@ python src/federated/fl_server.py
 python src/federated/fl_client.py
 ```
 
-**實際訓練結果（2026-06-19）**：
-- 10 rounds，1 client（261 筆，208 訓練 / 53 驗證），每輪 5 epochs
-- Round 1 Accuracy=100.00%，Round 3 短暫降至 98.11%，Round 4 起穩定 100.00%
-- Loss：0.413（Round 1）→ 0.393（Round 9，最低）→ 0.399（Round 10）
-- 總耗時：435.89 秒
-- 數據存於：`outputs/fl_training_log.txt`
+**實際訓練結果（Balanced 3-client，2026-07-20）**：
+- 10 rounds，3 clients（各含全 5 類，round-robin split）
+  - Drone: 89 筆（71 訓練 / 18 驗證），Boat: 87 筆，Ground: 85 筆
+- Round 1 Accuracy=98.11%，Round 2 起穩定 100.00%
+- Loss：0.4479（Round 1）→ 0.3934（Round 9，最低）→ 0.3941（Round 10）
+- 總耗時：370.98 秒
+- 資料目錄：`data/fl_split/{drone,boat,ground}/`（各含 5 類，--data-dir 參數）
+- 數據存於：`outputs/fl_training_log.txt`（含非 Non-IID 對照實驗記錄）
 - 收斂曲線圖：`paper_figures/fl_convergence_curve.pdf`（雙軸，TNR 13pt，300dpi）
+
+**Non-IID 對照實驗（2026-06-19）**：
+- Drone=motor_oil+water, Boat=olive_oil+lard, Ground=palm_oil only
+- 全局精確度震盪 81-98%，Ground client=0%（palm_oil↔water r=0.991 佐證 Discussion）
 
 **FL 收斂圖生成**：
 ```bash

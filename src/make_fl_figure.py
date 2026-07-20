@@ -23,10 +23,16 @@ plt.rcParams.update({
     'legend.fontsize': 11,
 })
 
-# 從 log 解析數據
+# 從 log 解析數據（只讀第一個實驗 section，遇到第二個 === 停止）
 rounds, losses, accuracies = [], [], []
+section_count = 0
 with open(LOG_PATH, 'r') as f:
     for line in f:
+        if line.startswith('==='):
+            section_count += 1
+            if section_count > 1:
+                break
+            continue
         m = re.search(r'Round (\d+) \| Loss: ([\d.]+) \| Accuracy: ([\d.]+)', line)
         if m:
             rounds.append(int(m.group(1)))
@@ -48,7 +54,8 @@ ax1.plot(rounds, accuracies, 'o-', color=color_acc, lw=2, markersize=5,
 ax1.set_xlabel('Communication Round')
 ax1.set_ylabel('Global Accuracy (%)', color=color_acc)
 ax1.tick_params(axis='y', labelcolor=color_acc)
-ax1.set_ylim(95, 101)
+min_acc = min(accuracies)
+ax1.set_ylim(max(min_acc - 5, 0), 101)
 ax1.set_xticks(rounds)
 ax1.grid(True, ls='--', alpha=0.4)
 
@@ -59,7 +66,8 @@ ax2.plot(rounds, losses, 's--', color=color_loss, lw=1.5, markersize=4,
          label='Global Loss')
 ax2.set_ylabel('Loss', color=color_loss)
 ax2.tick_params(axis='y', labelcolor=color_loss)
-ax2.set_ylim(0.38, 0.43)
+loss_range = max(losses) - min(losses)
+ax2.set_ylim(min(losses) - loss_range * 0.5, max(losses) + loss_range * 0.5)
 
 # 合併圖例
 lines1, labels1 = ax1.get_legend_handles_labels()

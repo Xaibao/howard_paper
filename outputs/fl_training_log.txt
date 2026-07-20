@@ -1,10 +1,27 @@
-=== FL Training Log — 3-Client Non-IID Simulation ===
-Setup:
+=== FL Training Log — 3-Client Balanced Simulation ===
+Setup (Balanced — all 5 classes per client, round-robin split):
+  Drone  (無人機): motor_oil + olive_oil + palm_oil + lard + water | 89 samples (71 train / 18 val)
+  Boat   (船隻):   motor_oil + olive_oil + palm_oil + lard + water | 87 samples (70 train / 17 val)
+  Ground (陸地):   motor_oil + olive_oil + palm_oil + lard + water | 85 samples (68 train / 17 val)
+  Total: 261 samples; 5 epochs/round; 10 rounds; FedAvg
+Round 01 | Loss: 0.4479 | Accuracy: 0.9811
+Round 02 | Loss: 0.4152 | Accuracy: 1.0000
+Round 03 | Loss: 0.4011 | Accuracy: 1.0000
+Round 04 | Loss: 0.3959 | Accuracy: 1.0000
+Round 05 | Loss: 0.3945 | Accuracy: 1.0000
+Round 06 | Loss: 0.3936 | Accuracy: 1.0000
+Round 07 | Loss: 0.3957 | Accuracy: 1.0000
+Round 08 | Loss: 0.3967 | Accuracy: 1.0000
+Round 09 | Loss: 0.3934 | Accuracy: 1.0000
+Round 10 | Loss: 0.3941 | Accuracy: 1.0000
+Best: Round 2 | Accuracy: 1.0000
+
+=== FL Training Log — 3-Client Non-IID Simulation (Reference) ===
+Setup (Non-IID — each client specializes):
   Drone  (無人機): motor_oil + water   | 82 samples (66 train / 16 val)
   Boat   (船隻):   olive_oil + lard    | 87 samples (70 train / 17 val)
   Ground (陸地):   palm_oil            | 40 samples (32 train / 8 val)
-  Aggregation: FedAvg | Rounds: 10 | Local epochs: 5
-
+  Total: 209 samples; 5 epochs/round; 10 rounds; FedAvg
 Round 01 | Loss: 0.6677 | Accuracy: 0.8491
 Round 02 | Loss: 0.6118 | Accuracy: 0.9623
 Round 03 | Loss: 0.7815 | Accuracy: 0.8113
@@ -15,8 +32,5 @@ Round 07 | Loss: 0.7613 | Accuracy: 0.8113
 Round 08 | Loss: 0.7195 | Accuracy: 0.8113
 Round 09 | Loss: 0.6702 | Accuracy: 0.8113
 Round 10 | Loss: 0.6800 | Accuracy: 0.8113
-
-Per-client local validation accuracy (final round):
-  Drone:  100.00%  (motor_oil + water — spectrally distinct, easy to separate)
-  Boat:   100.00%  (olive_oil + lard — different absorption profiles)
-  Ground:   0.00%  (palm_oil — r=0.991 with water, global model predicts as water)
+Best: Round 4 | Accuracy: 0.9811
+Note: Ground client accuracy=0% (palm_oil-only training; palm_oil↔water r=0.991 confounds global model)

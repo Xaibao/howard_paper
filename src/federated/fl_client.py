@@ -91,14 +91,14 @@ class LocalRealDataset(Dataset):
 
 # ── Flower Client ────────────────────────────────────────────
 class FOGClient(fl.client.NumPyClient):
-    def __init__(self, client_id: str, target_classes: List[str]):
+    def __init__(self, client_id: str, target_classes: List[str], data_dir: Path = None):
         self.client_id = client_id
         self.model     = get_model(device=DEVICE)
         self.criterion = nn.CrossEntropyLoss(label_smoothing=0.1)
         self.optimizer = optim.Adam(self.model.parameters(), lr=1e-4, weight_decay=1e-4)
 
         # 載入本地資料，80/20 切 train/val
-        augmented_dir = BASE_DIR / "data" / "augmented"
+        augmented_dir = data_dir if data_dir else BASE_DIR / "data" / "augmented"
         dataset       = LocalRealDataset(augmented_dir, target_classes)
         n_train       = max(1, int(0.8 * len(dataset)))
         n_val         = len(dataset) - n_train
@@ -175,6 +175,8 @@ def parse_args():
                         default=["motor_oil", "olive_oil", "palm_oil", "lard", "water"],
                         choices=CLASSES,
                         help="此客戶端負責的污染物類別（代表本地資料）")
+    parser.add_argument("--data-dir", default=None,
+                        help="自訂資料目錄（預設 data/augmented/）")
     return parser.parse_args()
 
 
@@ -186,9 +188,11 @@ def main():
     print(f"本地類別  : {args.classes}")
     print(f"本地訓練  : {LOCAL_EPOCHS} epochs/輪")
 
+    data_dir = Path(args.data_dir) if args.data_dir else None
     client = FOGClient(
         client_id=args.client_id,
         target_classes=args.classes,
+        data_dir=data_dir,
     )
 
     fl.client.start_numpy_client(
