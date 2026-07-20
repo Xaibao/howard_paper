@@ -129,6 +129,18 @@ data/real/
 
 Each sample = `{timestamp}.bmp` + `{timestamp}_sg.txt` (1280 float values, 300–1100 nm, SG-filtered)
 
+**Training pipeline — which script reads/writes which folder:**
+
+| Step | Script | Input | Output |
+|------|--------|-------|--------|
+| 1 | `src/CGAN_curve.py` | `data/real/cgan_source/train/{class}/` (30 samples/class) | `data/dataset/train/{class}/txt/` (1000 _sg.txt/class) |
+| 2 | `src/CGAN_spectrum.py` | `data/real/cgan_source/train/{class}/` (30 samples/class) | `data/dataset/train/{class}/bmp/` (1000 .bmp/class) |
+| 3 | `src/MLP+Tran.py` | `data/dataset/train/{class}/` (CGAN generated, 1000/class) | `models/best_mlp_transformer_v2.pth`, `models/mlp_transformer_v2.pth` |
+| 4 (eval) | `src/make_confusion_figures.py` | `data/real/real_test/{class}/` (250 real samples/class) | `outputs/confusion_matrix_*.png/.pdf` |
+
+> `data/dataset/train/` (CGAN generated, ~6.2 GB) is in `.gitignore` — run Steps 1–2 to regenerate.
+> `data/real/` (real measurements, uploaded to repo) is the source of truth.
+
 ## Step 1 — CGAN: Synthetic Spectrum (txt)
 
 Trains a 1D-Conv CGAN per class. 30 real → 1,000 synthetic `_sg.txt` per class.
