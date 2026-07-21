@@ -40,3 +40,18 @@ src/fog_expert_db/
 # RPi share
 rpi_share/
 rtmp-server/nginx-rtmp-module/
+
+# nginx 原始碼（apt install nginx 即可，不需上傳）
+rtmp-server/nginx-1.20.1/
+
+# 舊實驗備份與私人筆記
+runs/
+outputs/sample_bmp/
+fix_action_list.txt
+paper_abstract_notion.txt
+reviewer_responses.txt
+run_all.sh
+run_figures.sh
+run_split_figures.sh
+data_paper/ig_palm_oil_description.txt
+data_paper/method_answers.txt
